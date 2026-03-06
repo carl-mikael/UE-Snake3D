@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <!-- 
+    Permanent fix for SetEnv task failure with NMake projects
+    This file is auto-imported by MSBuild and survives project regeneration
+    
+    Issue: Unreal Engine generates vcxproj files with 100+ engine include paths
+    that exceed Windows' 32KB environment variable limit, causing SetEnv task failure.
+    
+    Solution: Disable SetEnv for NMake/Makefile projects since include paths are
+    handled by Unreal's build scripts, not MSBuild environment variables.
+    
+    Reference: https://forums.unrealengine.com/t/the-setenv-task-failed-unexpectedly/2675115
+  -->
+  
+  <!-- Override SetBuildDefaultEnvironmentVariables for NMake projects -->
+  <Target Name="SetBuildDefaultEnvironmentVariables"
+          DependsOnTargets="$(SetBuildDefaultEnvironmentVariablesDependsOn)"
+          Condition="'$(UseEnv)' != 'true' and '$(DesignTimeBuild)' != 'true' and '$(ConfigurationType)' == 'Makefile'">
+    <!-- SetEnv is skipped for NMake projects - paths are handled by Unreal's build scripts, not MSBuild env vars -->
+  </Target>
+
+  <!-- Clear the dependency chain for NMake projects to prevent path accumulation -->
+  <PropertyGroup Condition="'$(ConfigurationType)' == 'Makefile'">
+    <SetBuildDefaultEnvironmentVariablesDependsOn></SetBuildDefaultEnvironmentVariablesDependsOn>
+  </PropertyGroup>
+</Project>
