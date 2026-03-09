@@ -8,7 +8,7 @@ void ULevelSwitcherSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 
-	UE_LOG(LogTemp, Log, TEXT("LevelSwitcherSubsystem - BeginPLay!!"));
+	UE_LOG(LogTemp, Log, TEXT("LevelSwitcherSubsystem - BeginPlay!!"));
 }
 
 void ULevelSwitcherSubsystem::SwitchLevel(TSoftObjectPtr<UWorld> LevelAsset)

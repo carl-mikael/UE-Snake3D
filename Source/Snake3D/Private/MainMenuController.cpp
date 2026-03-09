@@ -7,7 +7,7 @@
 void AMainMenuController::BeginPlay()
 {
 	Super::BeginPlay();
-
+	
 	if (MainMenuWidgetClass)
 	{
 		MainMenuWidget = CreateWidget<UUserWidget>(this, MainMenuWidgetClass);
@@ -20,7 +20,7 @@ void AMainMenuController::BeginPlay()
 	}
 }
 
-void AMainMenuController::EndPlay(EEndPlayReason::Type EndPlayReason)
+void AMainMenuController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	Super::EndPlay(EndPlayReason);
 
