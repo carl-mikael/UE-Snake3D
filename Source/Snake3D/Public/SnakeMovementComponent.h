@@ -6,23 +6,22 @@
 #include "GameFramework/PawnMovementComponent.h"
 #include "SnakeMovementComponent.generated.h"
 
-/**
- * 
- */
 UCLASS()
 class SNAKE3D_API USnakeMovementComponent : public UPawnMovementComponent
 {
 	GENERATED_BODY()
 	
-public:
-	USnakeMovementComponent();
-	
-	virtual void TickComponent(const float DeltaTime, const ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-	
-	// Takes a readonly reference from the owning pawn and stores it as a const pointer
-	void BindMovementSpeed(const float* InSpeed);
-	
+	// --- Properties ---
 private:
 	const float* Speed = nullptr;
 	void MoveTick(const float DeltaTime);
+	
+	// --- Methods ---
+public:
+	USnakeMovementComponent();
+	// Stores a reference to the InSpeed, used for moving the snake.
+	void BindMovementSpeed(const float* InSpeed);
+	
+protected:
+	virtual void TickComponent(const float DeltaTime, const ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 };

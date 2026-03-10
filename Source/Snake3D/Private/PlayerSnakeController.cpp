@@ -9,8 +9,6 @@ void APlayerSnakeController::BeginPlay()
 {
     Super::BeginPlay();
     
-    ControlledPawn = GetPawn();
-    
     ULocalPlayer* LocalPlayer = GetLocalPlayer();
     if (!LocalPlayer->IsValidLowLevel())
     {
@@ -36,11 +34,13 @@ void APlayerSnakeController::SetupInputComponent()
     }
 }
 
+// ReSharper disable once CppMemberFunctionMayBeConst
 void APlayerSnakeController::HandleTurn(const FInputActionValue& Value)
 {
     const float TurnValue = Value.Get<float>();
     UE_LOG(LogTemp, Log, TEXT("PlayerSnakeController::HandleTurn - Turn input: %f"), TurnValue);
     
-    ControlledPawn->AddMovementInput(ControlledPawn->GetActorRightVector(), TurnValue);
+    const FVector InputMove(0.0f, 0.0f, TurnValue);
+    this->GetPawn()->AddMovementInput(InputMove);
 }
 

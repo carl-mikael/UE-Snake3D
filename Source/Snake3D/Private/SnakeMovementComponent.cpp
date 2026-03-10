@@ -30,11 +30,15 @@ void USnakeMovementComponent::MoveTick(const float DeltaTime)
 	}
 	
 	const FVector InputVector = this->ConsumeInputVector();
-	if (!InputVector.IsNearlyZero() && Speed != nullptr)
+	if (!InputVector.IsNearlyZero())
 	{
-		UE_LOG(LogTemp, Log, TEXT("SnakeMovementComponent::MoveTick - Consumed movement input vector: %s"), *InputVector.ToString());
+		UE_LOG(LogTemp, Log, TEXT("InputVector: %s"), *InputVector.ToString());
 		
-		const FVector3d Move = InputVector * (*Speed) * DeltaTime;
-		UpdatedComponent->AddLocalOffset(Move, true);
+		const FRotator DeltaRotation(0.0, InputVector.Z * 90.0, 0.0);
+		UE_LOG(LogTemp, Log, TEXT("Changing rotation by: %s"), *DeltaRotation.ToString());
+		this->UpdatedComponent->AddRelativeRotation(DeltaRotation);
 	}
+	
+	const FVector3d Move = FVector3d::ForwardVector * (*Speed) * DeltaTime;
+	this->UpdatedComponent->AddLocalOffset(Move, true);
 }

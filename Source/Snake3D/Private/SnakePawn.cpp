@@ -4,17 +4,21 @@
 #include "SnakePawn.h"
 
 #include "SnakeMovementComponent.h"
+#include "Camera/CameraComponent.h"
 
 // Sets default values
 ASnakePawn::ASnakePawn()
 {
- 	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
 	
 	MovementComponent = CreateDefaultSubobject<USnakeMovementComponent>(TEXT("MovementComponent"));
-	Cast<USnakeMovementComponent>(MovementComponent)->BindMovementSpeed(&MovementSpeed);
+	MovementComponent->BindMovementSpeed(&MovementSpeed);
+	MovementComponent->SetUpdatedComponent(RootComponent);
+
+	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
+	CameraComponent->SetupAttachment(RootComponent);
 }
 
 // Called when the game starts or when spawned
@@ -22,7 +26,7 @@ void ASnakePawn::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	UE_LOG(LogTemp, Log, TEXT("SnakePawn::BeginPlay()"));
+	UE_LOG(LogTemp, Log, TEXT("SnakePawn::BeginPlay()!"));
 }
 
 // Called every frame
