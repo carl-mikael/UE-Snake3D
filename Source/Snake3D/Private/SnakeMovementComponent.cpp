@@ -3,3 +3,38 @@
 
 #include "SnakeMovementComponent.h"
 
+USnakeMovementComponent::USnakeMovementComponent()
+{
+	UE_LOG(LogTemp, Log, TEXT("SnakeMovementComponent constructor called"));
+	PrimaryComponentTick.bCanEverTick = true;
+}
+
+void USnakeMovementComponent::TickComponent(const float DeltaTime, const ELevelTick TickType,
+	FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	MoveTick(DeltaTime);
+}
+
+void USnakeMovementComponent::BindMovementSpeed(const float* InSpeed)
+{
+	Speed = InSpeed;
+}
+
+void USnakeMovementComponent::MoveTick(const float DeltaTime)
+{
+	if (Speed == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("SnakeMovementComponent::MoveTick - Speed pointer is null. Cannot move. Did you forget to call BindMovementSpeed?"));
+		return;
+	}
+	
+	const FVector InputVector = this->ConsumeInputVector();
+	if (!InputVector.IsNearlyZero() && Speed != nullptr)
+	{
+		UE_LOG(LogTemp, Log, TEXT("SnakeMovementComponent::MoveTick - Consumed movement input vector: %s"), *InputVector.ToString());
+		
+		const FVector3d Move = InputVector * (*Speed) * DeltaTime;
+		UpdatedComponent->AddLocalOffset(Move, true);
+	}
+}

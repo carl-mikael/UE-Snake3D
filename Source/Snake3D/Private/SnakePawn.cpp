@@ -11,6 +11,10 @@ ASnakePawn::ASnakePawn()
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
+	
+	MovementComponent = CreateDefaultSubobject<USnakeMovementComponent>(TEXT("MovementComponent"));
+	Cast<USnakeMovementComponent>(MovementComponent)->BindMovementSpeed(&MovementSpeed);
 }
 
 // Called when the game starts or when spawned
@@ -22,22 +26,15 @@ void ASnakePawn::BeginPlay()
 }
 
 // Called every frame
-void ASnakePawn::Tick(float DeltaTime)
+void ASnakePawn::Tick(const float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	FVector InputVector = ConsumeMovementInputVector();
-	if (!InputVector.IsNearlyZero())
-	{
-		UE_LOG(LogTemp, Log, TEXT("SnakePawn::Tick - Consumed movement input vector: %s"), *InputVector.ToString());
-	}
 }
 
 // Called to bind functionality to input
 void ASnakePawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
 }
 
 UPawnMovementComponent* ASnakePawn::GetMovementComponent() const
