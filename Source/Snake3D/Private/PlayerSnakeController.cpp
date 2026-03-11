@@ -4,33 +4,22 @@
 #include "PlayerSnakeController.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "InputMappingContext.h"
 
 void APlayerSnakeController::BeginPlay()
 {
     Super::BeginPlay();
     
-    if (InputMappingContext.Get() == nullptr)
+    if (const ULocalPlayer* LocalPlayer = GetLocalPlayer())
     {
-        UE_LOG(LogTemp, Error, TEXT("PlayerSnakeController::BeginPlay - InputMappingContext is nullptr"))
-    }
-    
-    if (TurnAction.Get() == nullptr)
-    {
-        UE_LOG(LogTemp, Error, TEXT("PlayerSnakeController::BeginPlay - TurnAction is nullptr"))
-    }
-
-    const ULocalPlayer* LocalPlayer = GetLocalPlayer();
-    if (!IsValid(LocalPlayer))
-    {
-        UE_LOG(LogTemp, Error, TEXT("PlayerSnakeController::BeginPlay - Failed to get LocalPlayer"));
-    }
-    else if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(LocalPlayer))
-    {
-        Subsystem->AddMappingContext(InputMappingContext, 0);
-    }
-    else
-    {
-        UE_LOG(LogTemp, Error, TEXT("PlayerSnakeController::BeginPlay - Failed to get EnhancedInputLocalPlayerSubsystem"));
+        if (UEnhancedInputLocalPlayerSubsystem* InputSystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+        {
+            if (!InputMappingContext.IsNull())
+            {
+                constexpr int Priority = 0;
+                InputSystem->AddMappingContext(InputMappingContext.LoadSynchronous(), Priority);
+            }
+        }
     }
 }
 
@@ -61,4 +50,3 @@ void APlayerSnakeController::HandleTurn(const FInputActionValue& Value)
         UE_LOG(LogTemp, Error, TEXT("PlayerSnakeController::HandleTurn - Pawn is invalid"));
     }
 }
-

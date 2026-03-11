@@ -5,19 +5,36 @@
 
 #include "SnakeMovementComponent.h"
 #include "Camera/CameraComponent.h"
+#include "Components/BoxComponent.h"
+#include "GameFramework/SpringArmComponent.h"
 
 // Sets default values
 ASnakePawn::ASnakePawn()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
+	DummySceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
+	SetRootComponent(DummySceneComponent);
+	
+	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
+	MeshComponent->SetupAttachment(RootComponent);
+	
+	if (!StaticMesh.IsNull())
+	{
+		if (IsValid(UStaticMesh* LoadedStaticMesh = StaticMesh.LoadSynchronous()))
+		{
+			MeshComponent->SetStaticMesh();
+		}
+	}
 	
 	MovementComponent = CreateDefaultSubobject<USnakeMovementComponent>(TEXT("MovementComponent"));
 	MovementComponent->SetUpdatedComponent(RootComponent);
 	
+	CameraSpringComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraSpringComponent"));
+	CameraSpringComponent->SetupAttachment(RootComponent);
+	
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
-	CameraComponent->SetupAttachment(RootComponent);
+	CameraComponent->SetupAttachment(CameraSpringComponent);
 }
 
 // Called when the game starts or when spawned

@@ -24,6 +24,7 @@ void USnakeMovementComponent::TickComponent(const float DeltaTime, const ELevelT
                                             FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	
 	MoveTick(DeltaTime);
 }
 

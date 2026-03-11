@@ -6,6 +6,7 @@
 #include "GameFramework/Pawn.h"
 #include "SnakePawn.generated.h"
 
+class USpringArmComponent;
 class UCameraComponent;
 class USnakeMovementComponent;
 
@@ -16,14 +17,26 @@ class SNAKE3D_API ASnakePawn : public APawn
 
 	// --- Properties ---
 protected:
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Movement")
-	float MovementSpeed = 200.0f;
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Components")
+	TObjectPtr<USceneComponent> DummySceneComponent;
+	
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Mesh")
+	TObjectPtr<UStaticMeshComponent> MeshComponent;
+	
+	UPROPERTY(BlueprintReadWrite, VisibleAnywhere, Category = "Mesh")
+	TSoftObjectPtr<UStaticMesh> StaticMesh;
 	
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Components")
 	TObjectPtr<USnakeMovementComponent> MovementComponent;
 	
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Components")
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Camera")
+	TObjectPtr<USpringArmComponent> CameraSpringComponent;
+	
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Camera")
 	TObjectPtr<UCameraComponent> CameraComponent;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Movement")
+	float MovementSpeed = 200.0f;
 
 	// --- Methods ---
 public:

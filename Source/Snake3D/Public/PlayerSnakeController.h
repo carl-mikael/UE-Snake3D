@@ -18,7 +18,7 @@ class SNAKE3D_API APlayerSnakeController : public APlayerController
 	// --- Properties ---
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
-	TObjectPtr<UInputMappingContext> InputMappingContext;
+	TSoftObjectPtr<UInputMappingContext> InputMappingContext;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> TurnAction;
