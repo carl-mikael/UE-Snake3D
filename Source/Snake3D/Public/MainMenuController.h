@@ -6,9 +6,6 @@
 #include "GameFramework/PlayerController.h"
 #include "MainMenuController.generated.h"
 
-/**
- * 
- */
 UCLASS()
 class SNAKE3D_API AMainMenuController : public APlayerController
 {
@@ -19,11 +16,9 @@ protected:
 	virtual void EndPlay(EEndPlayReason::Type EndPlayReason) override;
 
 	UPROPERTY(BlueprintReadOnly)
-	TObjectPtr<class UUserWidget> MainMenuWidget;
+	TObjectPtr<UUserWidget> MainMenuWidget;
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
-	TSubclassOf<class UUserWidget> MainMenuWidgetClass;
-
-//private:
+	TSubclassOf<UUserWidget> MainMenuWidgetClass;
 };

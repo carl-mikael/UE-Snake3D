@@ -9,8 +9,18 @@ void APlayerSnakeController::BeginPlay()
 {
     Super::BeginPlay();
     
-    ULocalPlayer* LocalPlayer = GetLocalPlayer();
-    if (!LocalPlayer->IsValidLowLevel())
+    if (InputMappingContext.Get() == nullptr)
+    {
+        UE_LOG(LogTemp, Error, TEXT("PlayerSnakeController::BeginPlay - InputMappingContext is nullptr"))
+    }
+    
+    if (TurnAction.Get() == nullptr)
+    {
+        UE_LOG(LogTemp, Error, TEXT("PlayerSnakeController::BeginPlay - TurnAction is nullptr"))
+    }
+
+    const ULocalPlayer* LocalPlayer = GetLocalPlayer();
+    if (!IsValid(LocalPlayer))
     {
         UE_LOG(LogTemp, Error, TEXT("PlayerSnakeController::BeginPlay - Failed to get LocalPlayer"));
     }
@@ -41,6 +51,14 @@ void APlayerSnakeController::HandleTurn(const FInputActionValue& Value)
     UE_LOG(LogTemp, Log, TEXT("PlayerSnakeController::HandleTurn - Turn input: %f"), TurnValue);
     
     const FVector InputMove(0.0f, 0.0f, TurnValue);
-    this->GetPawn()->AddMovementInput(InputMove);
+    APawn* TmpPawn = GetPawn().Get();
+    if (IsValid(TmpPawn))
+    {
+        TmpPawn->AddMovementInput(InputMove);
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("PlayerSnakeController::HandleTurn - Pawn is invalid"));
+    }
 }
 

@@ -6,9 +6,6 @@
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "LevelSwitcherSubsystem.generated.h"
 
-/**
- * 
- */
 UCLASS()
 class SNAKE3D_API ULevelSwitcherSubsystem : public UGameInstanceSubsystem
 {

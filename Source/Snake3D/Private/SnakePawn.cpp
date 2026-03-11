@@ -14,9 +14,8 @@ ASnakePawn::ASnakePawn()
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
 	
 	MovementComponent = CreateDefaultSubobject<USnakeMovementComponent>(TEXT("MovementComponent"));
-	MovementComponent->BindMovementSpeed(&MovementSpeed);
 	MovementComponent->SetUpdatedComponent(RootComponent);
-
+	
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
 	CameraComponent->SetupAttachment(RootComponent);
 }
@@ -44,5 +43,10 @@ void ASnakePawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent
 UPawnMovementComponent* ASnakePawn::GetMovementComponent() const
 {
 	return MovementComponent;
+}
+
+float ASnakePawn::GetMovementSpeed() const
+{
+	return MovementSpeed;
 }
 

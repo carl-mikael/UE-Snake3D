@@ -6,6 +6,8 @@
 #include "GameFramework/PawnMovementComponent.h"
 #include "SnakeMovementComponent.generated.h"
 
+class ASnakePawn;
+
 UCLASS()
 class SNAKE3D_API USnakeMovementComponent : public UPawnMovementComponent
 {
@@ -13,14 +15,14 @@ class SNAKE3D_API USnakeMovementComponent : public UPawnMovementComponent
 	
 	// --- Properties ---
 private:
-	const float* Speed = nullptr;
+	UPROPERTY()
+	TObjectPtr<ASnakePawn> SnakePawn;
 	void MoveTick(const float DeltaTime);
 	
 	// --- Methods ---
 public:
 	USnakeMovementComponent();
-	// Stores a reference to the InSpeed, used for moving the snake.
-	void BindMovementSpeed(const float* InSpeed);
+	virtual void BeginPlay() override;
 	
 protected:
 	virtual void TickComponent(const float DeltaTime, const ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;

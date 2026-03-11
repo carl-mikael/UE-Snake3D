@@ -27,15 +27,12 @@ protected:
 
 	// --- Methods ---
 public:
-	// Sets default values for this pawn's properties
 	ASnakePawn();
-
-	// Called every frame
 	virtual void Tick(const float DeltaTime) override;
-
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 	virtual UPawnMovementComponent* GetMovementComponent() const override;
+	float GetMovementSpeed() const;
 
 protected:
 	// Called when the game starts or when spawned
