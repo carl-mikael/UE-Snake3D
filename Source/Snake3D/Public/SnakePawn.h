@@ -9,6 +9,8 @@
 class USpringArmComponent;
 class UCameraComponent;
 class USnakeMovementComponent;
+class USceneComponent;
+class UStaticMeshComponent;
 
 UCLASS()
 class SNAKE3D_API ASnakePawn : public APawn
@@ -22,9 +24,6 @@ protected:
 	
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Mesh")
 	TObjectPtr<UStaticMeshComponent> MeshComponent;
-	
-	UPROPERTY(BlueprintReadWrite, VisibleAnywhere, Category = "Mesh")
-	TSoftObjectPtr<UStaticMesh> StaticMesh;
 	
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Components")
 	TObjectPtr<USnakeMovementComponent> MovementComponent;

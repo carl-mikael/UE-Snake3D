@@ -19,7 +19,19 @@ void APlayerSnakeController::BeginPlay()
                 constexpr int Priority = 0;
                 InputSystem->AddMappingContext(InputMappingContext.LoadSynchronous(), Priority);
             }
+            else
+            {
+                UE_LOG(LogTemp, Error, TEXT("PlayerSnakeController::BeginPlay - Imc is null"))
+            }
         }
+        else
+        {
+            UE_LOG(LogTemp, Error, TEXT("PlayerSnakeController::BeginPlay - InputSystem is null"))
+        }
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("PlayerSnakeController::BeginPlay - LocalPlayer is null"))
     }
 }
 

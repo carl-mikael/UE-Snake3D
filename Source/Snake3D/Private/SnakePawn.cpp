@@ -5,7 +5,6 @@
 
 #include "SnakeMovementComponent.h"
 #include "Camera/CameraComponent.h"
-#include "Components/BoxComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 
 // Sets default values
@@ -18,14 +17,6 @@ ASnakePawn::ASnakePawn()
 	
 	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
 	MeshComponent->SetupAttachment(RootComponent);
-	
-	if (!StaticMesh.IsNull())
-	{
-		if (IsValid(UStaticMesh* LoadedStaticMesh = StaticMesh.LoadSynchronous()))
-		{
-			MeshComponent->SetStaticMesh();
-		}
-	}
 	
 	MovementComponent = CreateDefaultSubobject<USnakeMovementComponent>(TEXT("MovementComponent"));
 	MovementComponent->SetUpdatedComponent(RootComponent);
