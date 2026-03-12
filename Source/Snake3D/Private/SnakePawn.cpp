@@ -12,20 +12,42 @@ ASnakePawn::ASnakePawn()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	DummySceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
-	SetRootComponent(DummySceneComponent);
+	DummyRoot = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+	SetRootComponent(DummyRoot);
 	
-	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
-	MeshComponent->SetupAttachment(RootComponent);
+	UChildActorComponent* NewChildActorComponent = CreateDefaultSubobject<UChildActorComponent>(TEXT("NewChildActor"));
+	ChildActors.Emplace(NewChildActorComponent);
+	NewChildActorComponent->SetupAttachment(RootComponent);
 	
-	MovementComponent = CreateDefaultSubobject<USnakeMovementComponent>(TEXT("MovementComponent"));
-	MovementComponent->SetUpdatedComponent(RootComponent);
+	HeadMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HeadMesh"));
+	HeadMesh->SetupAttachment(RootComponent);
 	
-	CameraSpringComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraSpringComponent"));
-	CameraSpringComponent->SetupAttachment(RootComponent);
+	Movement = CreateDefaultSubobject<USnakeMovementComponent>(TEXT("Movement"));
+	Movement->SetUpdatedComponent(RootComponent);
 	
-	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
-	CameraComponent->SetupAttachment(CameraSpringComponent);
+	CameraSpring = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraSpring"));
+	CameraSpring->SetupAttachment(RootComponent);
+	
+	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
+	Camera->SetupAttachment(CameraSpring);
+}
+
+void ASnakePawn::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+	
+	UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnConstruction"));
+	if (IsValid(ChildActorClass))
+	{
+		for (const auto ChildActorComponent : ChildActors)
+		{
+			ChildActorComponent->SetChildActorClass(ChildActorClass);
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("SnakePawn - ChildActorClass ptr invalid"));
+	}
 }
 
 // Called when the game starts or when spawned
@@ -50,7 +72,7 @@ void ASnakePawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent
 
 UPawnMovementComponent* ASnakePawn::GetMovementComponent() const
 {
-	return MovementComponent;
+	return Movement;
 }
 
 float ASnakePawn::GetMovementSpeed() const

@@ -6,6 +6,8 @@
 #include "GameFramework/Pawn.h"
 #include "SnakePawn.generated.h"
 
+class UClass;
+class UChildActorComponent;
 class USpringArmComponent;
 class UCameraComponent;
 class USnakeMovementComponent;
@@ -20,19 +22,25 @@ class SNAKE3D_API ASnakePawn : public APawn
 	// --- Properties ---
 protected:
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Components")
-	TObjectPtr<USceneComponent> DummySceneComponent;
+	TObjectPtr<USceneComponent> DummyRoot;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category= "ChildComponent", meta=(OnlyPlaceable, AllowPrivateAccess="true"))
+	TSubclassOf<AActor> ChildActorClass;
+	
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "ChildComponent")
+	TArray<TObjectPtr<UChildActorComponent>> ChildActors;
 	
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Mesh")
-	TObjectPtr<UStaticMeshComponent> MeshComponent;
+	TObjectPtr<UStaticMeshComponent> HeadMesh;
 	
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Components")
-	TObjectPtr<USnakeMovementComponent> MovementComponent;
+	TObjectPtr<USnakeMovementComponent> Movement;
 	
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Camera")
-	TObjectPtr<USpringArmComponent> CameraSpringComponent;
+	TObjectPtr<USpringArmComponent> CameraSpring;
 	
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Camera")
-	TObjectPtr<UCameraComponent> CameraComponent;
+	TObjectPtr<UCameraComponent> Camera;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Movement")
 	float MovementSpeed = 200.0f;
@@ -47,6 +55,7 @@ public:
 	float GetMovementSpeed() const;
 
 protected:
+	virtual void OnConstruction(const FTransform& Transform) override;
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 };
