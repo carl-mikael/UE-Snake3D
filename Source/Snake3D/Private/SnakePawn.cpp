@@ -15,11 +15,11 @@ ASnakePawn::ASnakePawn()
 	DummyRoot = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 	SetRootComponent(DummyRoot);
 	
-	UChildActorComponent* NewChildActorComponent = CreateDefaultSubobject<UChildActorComponent>(TEXT("NewChildActor"));
-	ChildActors.Emplace(NewChildActorComponent);
-	NewChildActorComponent->SetupAttachment(RootComponent);
+	HeadMeshAssetPath = TEXT("/Engine/BasicShapes/Cone.Cone");
 	
 	HeadMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HeadMesh"));
+    HeadMesh->SetStaticMesh(ConstructorHelpers::FObjectFinder<UStaticMesh>(*HeadMeshAssetPath.ToString()).Object);
+	HeadMesh->SetNotifyRigidBodyCollision(true);
 	HeadMesh->SetupAttachment(RootComponent);
 	
 	Movement = CreateDefaultSubobject<USnakeMovementComponent>(TEXT("Movement"));
@@ -30,24 +30,12 @@ ASnakePawn::ASnakePawn()
 	
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(CameraSpring);
-}
-
-void ASnakePawn::OnConstruction(const FTransform& Transform)
-{
-	Super::OnConstruction(Transform);
 	
-	UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnConstruction"));
-	if (IsValid(ChildActorClass))
-	{
-		for (const auto ChildActorComponent : ChildActors)
-		{
-			ChildActorComponent->SetChildActorClass(ChildActorClass);
-		}
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("SnakePawn - ChildActorClass ptr invalid"));
-	}
+	BodyMeshAssetPath = TEXT("/Engine/BasicShapes/Cube.Cube");
+	
+	BodyCells.Add(CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BodyCell1")));
+	
+	MovementSpeed = 100.0f;
 }
 
 // Called when the game starts or when spawned
@@ -56,6 +44,13 @@ void ASnakePawn::BeginPlay()
 	Super::BeginPlay();
 	
 	UE_LOG(LogTemp, Log, TEXT("SnakePawn::BeginPlay()!"));
+	HeadMesh->OnComponentHit.AddDynamic(this, &ASnakePawn::OnHit);
+}
+
+void ASnakePawn::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
+	FVector NormalImpulse, const FHitResult& Hit)
+{
+	UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit()"));
 }
 
 // Called every frame

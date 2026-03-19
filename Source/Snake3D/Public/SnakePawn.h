@@ -24,13 +24,10 @@ protected:
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Components")
 	TObjectPtr<USceneComponent> DummyRoot;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category= "ChildComponent", meta=(OnlyPlaceable, AllowPrivateAccess="true"))
-	TSubclassOf<AActor> ChildActorClass;
+	UPROPERTY(BlueprintReadOnly, Category = "Head")
+	FName HeadMeshAssetPath;
 	
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "ChildComponent")
-	TArray<TObjectPtr<UChildActorComponent>> ChildActors;
-	
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Mesh")
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Head")
 	TObjectPtr<UStaticMeshComponent> HeadMesh;
 	
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Components")
@@ -42,8 +39,17 @@ protected:
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Camera")
 	TObjectPtr<UCameraComponent> Camera;
 	
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Body")
+	FName BodyMeshAssetPath;
+	
+	UPROPERTY(BlueprintReadWrite, VisibleAnywhere, Category = "Body")
+	TArray<TObjectPtr<UStaticMeshComponent>> BodyCells;
+	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Movement")
-	float MovementSpeed = 200.0f;
+	float MovementSpeed;
+	
+	UPROPERTY()
+	TArray<FTransform> AnchorPoints;
 
 	// --- Methods ---
 public:
@@ -55,7 +61,10 @@ public:
 	float GetMovementSpeed() const;
 
 protected:
-	virtual void OnConstruction(const FTransform& Transform) override;
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	
+private:
+	UFUNCTION()
+	void OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 };
