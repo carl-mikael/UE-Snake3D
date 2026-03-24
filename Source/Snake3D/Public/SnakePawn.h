@@ -21,29 +21,35 @@ class SNAKE3D_API ASnakePawn : public APawn
 
 	// --- Properties ---
 protected:
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Components")
+	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USceneComponent> DummyRoot;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category= "ChildComponent", meta=(OnlyPlaceable, AllowPrivateAccess="true"))
-	TSubclassOf<AActor> ChildActorClass;
-	
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "ChildComponent")
-	TArray<TObjectPtr<UChildActorComponent>> ChildActors;
-	
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Mesh")
+	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UStaticMeshComponent> HeadMesh;
 	
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Components")
+	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USnakeMovementComponent> Movement;
 	
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Camera")
+	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USpringArmComponent> CameraSpring;
 	
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Camera")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UCameraComponent> Camera;
 	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Movement")
-	float MovementSpeed = 200.0f;
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Body")
+	int NrOfBodyCells;
+	
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Body")
+	TSubclassOf<AActor> BodyCellActorClass;
+	
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Body")
+	TArray<TObjectPtr<AActor>> BodyCellActors;
+	
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Body")
+	float BodyCellOffset;
+	
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Movement")
+	float MovementSpeed;
 
 	// --- Methods ---
 public:
@@ -56,6 +62,10 @@ public:
 
 protected:
 	virtual void OnConstruction(const FTransform& Transform) override;
-	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	
+private:
+	UFUNCTION()
+	void OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 };
