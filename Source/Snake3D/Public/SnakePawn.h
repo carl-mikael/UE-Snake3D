@@ -33,13 +33,13 @@ protected:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USpringArmComponent> CameraSpring;
 	
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UCameraComponent> Camera;
 	
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Body")
 	int NrOfBodyCells;
 	
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Body")
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Body")
 	TSubclassOf<AActor> BodyCellActorClass;
 	
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Body")

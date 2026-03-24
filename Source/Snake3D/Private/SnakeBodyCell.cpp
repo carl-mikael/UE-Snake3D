@@ -7,11 +7,22 @@
 // Sets default values
 ASnakeBodyCell::ASnakeBodyCell()
 {
+	UE_LOG(LogTemp, Log, TEXT("ASnakeBodyCell::ASnakeBodyCell()"));
+	
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 	
 	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>("MeshComponent");
 	SetRootComponent(MeshComponent);
+	UStaticMesh* Mesh = LoadObject<UStaticMesh>(this, TEXT("/Engine/BasicShapes/Cube.Cube"));
+	if (IsValid(Mesh))
+	{
+		MeshComponent->SetStaticMesh(Mesh);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("SnakeBodyCell::ASnakeBodyCell() Couldn't find mesh"));
+	}
 }
 
 // Called when the game starts or when spawned

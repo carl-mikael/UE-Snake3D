@@ -3,6 +3,7 @@
 
 #include "SnakePawn.h"
 
+#include "SnakeBodyCell.h"
 #include "SnakeMovementComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -26,10 +27,20 @@ ASnakePawn::ASnakePawn()
 	
 	CameraSpring = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraSpring"));
 	CameraSpring->SetupAttachment(RootComponent);
+	CameraSpring->SocketOffset = FVector(0.0f, 0.0f, 200.0f);
+	CameraSpring->TargetArmLength = 85.0f;
+	CameraSpring->bEnableCameraLag = true;
+	CameraSpring->bEnableCameraRotationLag = true;
 	
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(CameraSpring);
+	const FVector CameraLocation = FVector(-50.0f, 0.0f, 0.0f);
+	Camera->AddLocalOffset(CameraLocation);
+	const FRotator CameraRotation = FRotator(-35.0f, 0.0f, 0.0f);
+	Camera->AddLocalRotation(CameraRotation);
 	
+	BodyCellActorClass = ASnakeBodyCell::StaticClass();
+		
 	NrOfBodyCells = 2;
 	BodyCellOffset = 100.0f;
 	MovementSpeed = 100.0f;
