@@ -40,10 +40,10 @@ protected:
 	int NrOfBodyCells;
 	
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Body")
-	TSoftObjectPtr<UStaticMesh> BodyCellMesh;
+	TSubclassOf<AActor> BodyCellActorClass;
 	
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Body")
-	TArray<TObjectPtr<UStaticMeshComponent>> BodyCells;
+	TArray<TObjectPtr<AActor>> BodyCellActors;
 	
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Body")
 	float BodyCellOffset;
