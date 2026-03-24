@@ -21,35 +21,35 @@ class SNAKE3D_API ASnakePawn : public APawn
 
 	// --- Properties ---
 protected:
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Components")
+	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USceneComponent> DummyRoot;
 	
-	UPROPERTY(BlueprintReadOnly, Category = "Head")
-	FName HeadMeshAssetPath;
-	
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Head")
+	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UStaticMeshComponent> HeadMesh;
 	
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Components")
+	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USnakeMovementComponent> Movement;
 	
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Camera")
+	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USpringArmComponent> CameraSpring;
 	
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Camera")
+	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UCameraComponent> Camera;
 	
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Body")
-	FName BodyMeshAssetPath;
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Body")
+	int NrOfBodyCells;
 	
-	UPROPERTY(BlueprintReadWrite, VisibleAnywhere, Category = "Body")
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Body")
+	TSoftObjectPtr<UStaticMesh> BodyCellMesh;
+	
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Body")
 	TArray<TObjectPtr<UStaticMeshComponent>> BodyCells;
 	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Movement")
-	float MovementSpeed;
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Body")
+	float BodyCellOffset;
 	
-	UPROPERTY()
-	TArray<FTransform> AnchorPoints;
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Movement")
+	float MovementSpeed;
 
 	// --- Methods ---
 public:
@@ -61,8 +61,9 @@ public:
 	float GetMovementSpeed() const;
 
 protected:
-	// Called when the game starts or when spawned
+	virtual void OnConstruction(const FTransform& Transform) override;
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
 private:
 	UFUNCTION()

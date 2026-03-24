@@ -14,9 +14,8 @@ ASnakePawn::ASnakePawn()
 
 	DummyRoot = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 	SetRootComponent(DummyRoot);
-	
-	HeadMeshAssetPath = TEXT("/Engine/BasicShapes/Cone.Cone");
-	
+
+	const FName HeadMeshAssetPath = TEXT("/Engine/BasicShapes/Cone.Cone");
 	HeadMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HeadMesh"));
     HeadMesh->SetStaticMesh(ConstructorHelpers::FObjectFinder<UStaticMesh>(*HeadMeshAssetPath.ToString()).Object);
 	HeadMesh->SetNotifyRigidBodyCollision(true);
@@ -31,11 +30,36 @@ ASnakePawn::ASnakePawn()
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(CameraSpring);
 	
-	BodyMeshAssetPath = TEXT("/Engine/BasicShapes/Cube.Cube");
+	const FName BodyMeshAssetPath = TEXT("/Engine/BasicShapes/Cube.Cube");
+	BodyCellMesh = ConstructorHelpers::FObjectFinder<UStaticMesh>(*BodyMeshAssetPath.ToString()).Object;
 	
-	BodyCells.Add(CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BodyCell1")));
+	NrOfBodyCells = 2;
 	
+	for (int i = 0; i < NrOfBodyCells; ++i)
+	{
+		const FString BodyCellName = FString::Printf(TEXT("BodyCell%d"), i);	
+		UStaticMeshComponent* BodyCell = CreateDefaultSubobject<UStaticMeshComponent>(*BodyCellName);
+		if (i == 0)
+		{
+			BodyCell->SetupAttachment(HeadMesh);
+		}
+		else
+		{
+			BodyCell->SetupAttachment(BodyCells[i - 1]);
+		}
+		
+		BodyCells.Add(BodyCell);
+	}
+	
+	BodyCellOffset = 100.0f;
 	MovementSpeed = 100.0f;
+}
+
+void ASnakePawn::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+	
+	UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnConstruction()!"));
 }
 
 // Called when the game starts or when spawned
@@ -44,11 +68,38 @@ void ASnakePawn::BeginPlay()
 	Super::BeginPlay();
 	
 	UE_LOG(LogTemp, Log, TEXT("SnakePawn::BeginPlay()!"));
-	HeadMesh->OnComponentHit.AddDynamic(this, &ASnakePawn::OnHit);
+	
+	HeadMesh->OnComponentHit.AddUniqueDynamic(this, &ASnakePawn::OnHit);
+
+	UStaticMesh* BodyMesh = BodyCellMesh.LoadSynchronous();
+	if (IsValid(BodyMesh))
+	{
+		for (int i = 0; i < NrOfBodyCells; ++i)
+		{
+			UStaticMeshComponent* BodyCell = BodyCells[i];
+			if (!IsValid(BodyCell))
+			{
+				UE_LOG(LogTemp, Error, TEXT("SnakePawn::BeginPlay() - Body cell invalid i: %i"), i);
+				break;
+			}
+			BodyCell->SetStaticMesh(BodyMesh);
+			const float XOffset = -BodyCellOffset * (i + 1);
+			const FVector Offset = FVector(XOffset, 0.0f, 0.0f);
+			BodyCell->AddLocalOffset(Offset);
+		}
+	}
 }
 
+void ASnakePawn::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+	
+	HeadMesh->OnComponentHit.RemoveDynamic(this, &ASnakePawn::OnHit);
+}
+
+
 void ASnakePawn::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
-	FVector NormalImpulse, const FHitResult& Hit)
+                       FVector NormalImpulse, const FHitResult& Hit)
 {
 	UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit()"));
 }
