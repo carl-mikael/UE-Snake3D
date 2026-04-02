@@ -22,9 +22,6 @@ class SNAKE3D_API ASnakePawn : public APawn
 	// --- Properties ---
 protected:
 	UPROPERTY(VisibleAnywhere)
-	TObjectPtr<USceneComponent> DummyRoot;
-	
-	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UStaticMeshComponent> HeadMesh;
 	
 	UPROPERTY(VisibleAnywhere)
@@ -45,6 +42,9 @@ protected:
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Body")
 	TArray<TObjectPtr<AActor>> BodyCellActors;
 	
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Body")
+	TArray<TObjectPtr<UChildActorComponent>> ChildActorComponents;
+	
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Body")
 	float BodyCellOffset;
 	
@@ -62,10 +62,12 @@ public:
 
 protected:
 	virtual void OnConstruction(const FTransform& Transform) override;
+	bool AddBodyCell();
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
 private:
 	UFUNCTION()
 	void OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+	void MoveBodyCells(float DeltaTime);
 };

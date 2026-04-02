@@ -14,7 +14,7 @@ ASnakeBodyCell::ASnakeBodyCell()
 	
 	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>("MeshComponent");
 	SetRootComponent(MeshComponent);
-	UStaticMesh* Mesh = LoadObject<UStaticMesh>(this, TEXT("/Engine/BasicShapes/Cube.Cube"));
+	UStaticMesh* Mesh = LoadObject<UStaticMesh>(this, TEXT("/Engine/BasicShapes/Sphere.Sphere"));
 	if (IsValid(Mesh))
 	{
 		MeshComponent->SetStaticMesh(Mesh);

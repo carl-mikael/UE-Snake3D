@@ -3,6 +3,7 @@
 
 #include "SnakePawn.h"
 
+#include "Food.h"
 #include "SnakeBodyCell.h"
 #include "SnakeMovementComponent.h"
 #include "Camera/CameraComponent.h"
@@ -13,17 +14,14 @@ ASnakePawn::ASnakePawn()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	DummyRoot = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
-	SetRootComponent(DummyRoot);
-
 	const FName HeadMeshAssetPath = TEXT("/Engine/BasicShapes/Cone.Cone");
 	HeadMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HeadMesh"));
     HeadMesh->SetStaticMesh(ConstructorHelpers::FObjectFinder<UStaticMesh>(*HeadMeshAssetPath.ToString()).Object);
 	HeadMesh->SetNotifyRigidBodyCollision(true);
-	HeadMesh->SetupAttachment(RootComponent);
+	SetRootComponent(HeadMesh);
 	
 	Movement = CreateDefaultSubobject<USnakeMovementComponent>(TEXT("Movement"));
-	Movement->SetUpdatedComponent(RootComponent);
+	Movement->SetUpdatedComponent(HeadMesh);
 	
 	CameraSpring = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraSpring"));
 	CameraSpring->SetupAttachment(RootComponent);
@@ -43,7 +41,7 @@ ASnakePawn::ASnakePawn()
 		
 	NrOfBodyCells = 2;
 	BodyCellOffset = 100.0f;
-	MovementSpeed = 100.0f;
+	MovementSpeed = 200.0f;
 }
 
 void ASnakePawn::OnConstruction(const FTransform& Transform)
@@ -51,6 +49,32 @@ void ASnakePawn::OnConstruction(const FTransform& Transform)
 	Super::OnConstruction(Transform);
 	
 	UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnConstruction()!"));
+}
+
+bool ASnakePawn::AddBodyCell()
+{
+	const int BodyCellCount = BodyCellActors.Num();
+	const FString BodyCellName = FString::Printf(TEXT("BodyCell%d"), BodyCellCount);	
+	UChildActorComponent* ChildActorComponent = NewObject<UChildActorComponent>(this, *BodyCellName);
+	ChildActorComponent->RegisterComponent();
+	ChildActorComponent->SetChildActorClass(BodyCellActorClass);
+	//ChildActorComponent->AttachToComponent(HeadMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+	ChildActorComponents.Add(ChildActorComponent);
+	const AActor* ChildActor = ChildActorComponent->GetChildActor();
+	if (!IsValid(ChildActor))
+	{
+		UE_LOG(LogTemp, Error, TEXT("SnakePawn::BeginPlay() - Failed to spawn body cell actor i: %i"), BodyCellCount);
+		return false;
+	}
+	
+	BodyCellActors.Add(ChildActorComponent->GetChildActor());
+	
+	const float XOffset = -BodyCellOffset * (BodyCellCount + 1);
+	const FVector Offset = FVector(XOffset, 0.0f, 0.0f);
+	const FVector BodyCellWorldLocation = GetRootComponent()->GetComponentLocation() + Offset;
+	ChildActor->GetRootComponent()->SetWorldLocation(BodyCellWorldLocation);
+	
+	return true;
 }
 
 // Called when the game starts or when spawned
@@ -66,38 +90,13 @@ void ASnakePawn::BeginPlay()
 	{
 		for (int i = 0; i < NrOfBodyCells; ++i)
 		{
-			const FString BodyCellName = FString::Printf(TEXT("BodyCell%d"), i);	
-			UChildActorComponent* ChildActorComponent = NewObject<UChildActorComponent>(this, *BodyCellName);
-			ChildActorComponent->RegisterComponent();
-			ChildActorComponent->SetChildActorClass(BodyCellActorClass);
-			const AActor* ChildActor = ChildActorComponent->GetChildActor();
-			if (!IsValid(ChildActor))
-			{
-				UE_LOG(LogTemp, Error, TEXT("SnakePawn::BeginPlay() - Failed to spawn body cell actor i: %i"), i);
+			if (!AddBodyCell())
 				break;
-			}
-			
-			BodyCellActors.Add(ChildActorComponent->GetChildActor());
 		}
 	}
 	else
 	{
 		UE_LOG(LogTemp, Error, TEXT("SnakePawn - ChildActorClass ptr invalid"));
-	}
-	
-	for (int i = 0; i < BodyCellActors.Num(); ++i)
-	{
-		const AActor* BodyCell = BodyCellActors[i];
-		if (!IsValid(BodyCell))
-		{
-			UE_LOG(LogTemp, Error, TEXT("SnakePawn::BeginPlay() - Body cell invalid i: %i"), i);
-			break;
-		}
-		
-		const float XOffset = -BodyCellOffset * (i + 1);
-		const FVector Offset = FVector(XOffset, 0.0f, 0.0f);
-		const FVector BodyCellWorldLocation = GetRootComponent()->GetComponentLocation() + Offset;
-		BodyCell->GetRootComponent()->SetWorldLocation(BodyCellWorldLocation);
 	}
 }
 
@@ -112,13 +111,49 @@ void ASnakePawn::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimit
                        FVector NormalImpulse, const FHitResult& Hit)
 {
 	UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit()"));
+	
+	// Food Collision
+	AActor* FoodActor = Cast<AFood>(OtherActor);
+	if (IsValid(FoodActor))
+	{
+		UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit - Food!"));
+		FoodActor->Destroy();
+		if (!AddBodyCell())
+		{
+			UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit - Failed to add BodyCell"));
+		}
+	}
+	
+	// HeadCollision
+	const AActor* SnakePawn = Cast<ASnakePawn>(OtherActor);
+	if (IsValid(SnakePawn))
+	{
+		UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit - Hit SnakePawnHead!"));
+		Destroy();
+	}
+	
+	// BodyCellCollision
+	const AActor* BodyCellActor = Cast<ASnakeBodyCell>(OtherActor);
+	if (IsValid(BodyCellActor))
+	{
+		const bool bIsSelf = (OtherActor->GetParentActor() == this);
+		const FString Msg = bIsSelf? TEXT("self") : TEXT("other");
+		UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit - Hit %s BodyCellActor!"), *Msg);
+		
+		// Epic coding
+		if (bIsSelf)
+		{
+			Destroy();
+		}
+		else
+		{
+			Destroy();
+		}
+	}
 }
 
-// Called every frame
-void ASnakePawn::Tick(const float DeltaTime)
+void ASnakePawn::MoveBodyCells(const float DeltaTime)
 {
-	Super::Tick(DeltaTime);
-
 	for (int i=0; i<BodyCellActors.Num(); ++i)
 	{
 		const AActor* BodyCell = BodyCellActors[i];
@@ -135,15 +170,22 @@ void ASnakePawn::Tick(const float DeltaTime)
 		CellRoot->SetWorldRotation(RotToPrevCell);
 		FVector Move = FVector(MovementSpeed * DeltaTime, 0.0f, 0.0f);
 		FVector NewLocation = BodyCell->GetActorLocation() + Move;
-		const float MinDistanceSqr = MovementSpeed;
 		const float DistanceSqr = (PrevCellLocation - NewLocation).Length();
-		if (DistanceSqr < MinDistanceSqr)
+		if (DistanceSqr < BodyCellOffset)
 		{
-			Move.X -= MinDistanceSqr - DistanceSqr;
+			Move.X -= BodyCellOffset - DistanceSqr;
 		}
 		
 		CellRoot->AddLocalOffset(Move);
 	}
+}
+
+// Called every frame
+void ASnakePawn::Tick(const float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	MoveBodyCells(DeltaTime);
 }
 
 // Called to bind functionality to input
