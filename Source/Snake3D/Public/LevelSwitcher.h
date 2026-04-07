@@ -4,10 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
-#include "LevelSwitcherSubsystem.generated.h"
+#include "LevelSwitcher.generated.h"
 
 UCLASS()
-class SNAKE3D_API ULevelSwitcherSubsystem : public UGameInstanceSubsystem
+class SNAKE3D_API ULevelSwitcher : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
 
@@ -15,5 +15,5 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 
 	UFUNCTION(BlueprintCallable)
-	void SwitchLevel(TSoftObjectPtr<UWorld> LevelAsset);
+	void SwitchToLevel(TSoftObjectPtr<UWorld> LevelAsset) const;
 };
