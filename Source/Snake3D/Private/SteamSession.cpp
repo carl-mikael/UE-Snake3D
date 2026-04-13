@@ -13,7 +13,6 @@ void USteamSession::Initialize(FSubsystemCollectionBase& Collection)
 	UE_LOG(LogTemp, Log, TEXT("SteamSession::Initialize() - BeginPlay!!"));
 	
 	// ReSharper disable once CppBoundToDelegateMethodIsNotMarkedAsUFunction
-	//const IOnlineSubsystem* SteamSubsystem = IOnlineSubsystem::Get(FName("Steam"));
 	const IOnlineSubsystem* SteamSubsystem = IOnlineSubsystem::Get();
 	if (!SteamSubsystem)
 	{
@@ -27,7 +26,7 @@ void USteamSession::Initialize(FSubsystemCollectionBase& Collection)
 		
 		return;
 	}
-
+	
 	SessionInterface = SteamSubsystem->GetSessionInterface();
 	if (!SessionInterface.IsValid())
 	{
@@ -36,8 +35,15 @@ void USteamSession::Initialize(FSubsystemCollectionBase& Collection)
 	}
 	SearchSettings = MakeShared<FOnlineSessionSearch>();
 	
+	DebugSessionName = TEXT("TestSession");
+	
 	SessionSettings = FOnlineSessionSettings();
 	SessionSettings.bIsLANMatch = true;
+	SessionSettings.bIsDedicated = false;
+	SessionSettings.bAllowJoinViaPresenceFriendsOnly = false;
+	SessionSettings.bAntiCheatProtected = false;
+	SessionSettings.bUsesStats = false;
+	SessionSettings.bUseLobbiesVoiceChatIfAvailable = false;
 	SessionSettings.NumPublicConnections = 2;
 	SessionSettings.bAllowJoinInProgress = true;
 	SessionSettings.bAllowJoinViaPresence = true; // Allows Steam "Join Game"
@@ -53,7 +59,7 @@ void USteamSession::Initialize(FSubsystemCollectionBase& Collection)
 	SessionInterface->OnRegisterPlayersCompleteDelegates.AddUObject(this, &USteamSession::OnRegisterPlayersComplete);
 }
 
-void USteamSession::Host(const FName SessionName) const
+void USteamSession::Host() const
 {
 	const ULocalPlayer* LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
 	if (!IsValid(LocalPlayer))
@@ -82,17 +88,15 @@ void USteamSession::Host(const FName SessionName) const
 		return;
 	}
 	
-	SessionInterface->CreateSession(*LocalPlayer->GetPreferredUniqueNetId(), SessionName, SessionSettings);
+	SessionInterface->CreateSession(*LocalPlayer->GetPreferredUniqueNetId(), DebugSessionName, SessionSettings);
 	
 	if (GEngine)
 	{
 		GEngine->AddOnScreenDebugMessage(
 			-1, 5.f, FColor::Green,
-			TEXT("SteamSession::Host()")
+			TEXT("SteamSession::Host() CreateSession requested")
 		);
 	}
-	
-	SessionInterface->GetNumSessions();
 }
 
 void USteamSession::GetAvailableSessions()
@@ -117,6 +121,7 @@ void USteamSession::GetAvailableSessions()
 		
 		return;
 	}
+	
 	SearchSettings->bIsLanQuery = true;
 	SessionInterface->FindSessions(0, SearchSettings.ToSharedRef());
 }
@@ -126,30 +131,154 @@ void USteamSession::OnCreateSessionComplete(FName SessionName, bool bSuccess)
 	if (GEngine)
 	{
 		GEngine->AddOnScreenDebugMessage(
-			-1, 5.f, FColor::Green,
-			TEXT("SteamSession::OnCreateSessionComplete()")
+			-1, 5.f, bSuccess ? FColor::Green : FColor::Red,
+			FString::Printf(TEXT("SteamSession::OnCreateSessionComplete() Success=%s"), bSuccess ? TEXT("True") : TEXT("False"))
+		);
+	}
+
+	if (!bSuccess || !SessionInterface.IsValid())
+	{
+		return;
+	}
+
+	const bool bStartSuccess = SessionInterface->StartSession(SessionName);
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(
+			-1, 5.f, bStartSuccess ? FColor::Green : FColor::Red,
+			FString::Printf(TEXT("SteamSession::StartSession() Success=%s"), bStartSuccess ? TEXT("True") : TEXT("False"))
 		);
 	}
 }
 
 void USteamSession::OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type JoinResult)
 {
-	if (GEngine)
+	constexpr int32 MaxJoinRetries = 5;
+	constexpr int32 MaxJoinResolveRetries = 10;
+	static int32 JoinRetryCount = 0;
+	static int32 JoinResolveRetryCount = 0;
+
+	UWorld* World = GetWorld();
+	auto ShowScreen = [](const FString& Msg, const FColor Color)
 	{
-		GEngine->AddOnScreenDebugMessage(
-			-1, 5.f, FColor::Green,
-			TEXT("SteamSession::OnJoinSessionComplete()!!!")
-		);
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 6.f, Color, Msg);
+		}
+	};
+
+	auto JoinResultToText = [](const EOnJoinSessionCompleteResult::Type Result)
+	{
+		switch (Result)
+		{
+		case EOnJoinSessionCompleteResult::Success:
+			return TEXT("Success");
+		case EOnJoinSessionCompleteResult::SessionIsFull:
+			return TEXT("SessionIsFull");
+		case EOnJoinSessionCompleteResult::SessionDoesNotExist:
+			return TEXT("SessionDoesNotExist");
+		case EOnJoinSessionCompleteResult::CouldNotRetrieveAddress:
+			return TEXT("CouldNotRetrieveAddress");
+		case EOnJoinSessionCompleteResult::AlreadyInSession:
+			return TEXT("AlreadyInSession");
+		default:
+			return TEXT("Unknown");
+		}
+	};
+
+	if (!SessionInterface.IsValid())
+	{
+		ShowScreen(TEXT("Join complete: SessionInterface invalid"), FColor::Red);
+		return;
 	}
 
-	const bool bRegisterSuccessful = SessionInterface->RegisterPlayer(SessionName, *GetWorld()->GetFirstLocalPlayerFromController()->GetPreferredUniqueNetId(), false);
-	if (GEngine)
+	auto* NetDriver = World ? World->GetNetDriver() : nullptr;
+	ShowScreen(
+		FString::Printf(TEXT("Join complete. Result=%s(%d) Session=%s NetDriver=%s"),
+			JoinResultToText(JoinResult),
+			static_cast<int32>(JoinResult),
+			*SessionName.ToString(),
+			NetDriver ? *NetDriver->GetClass()->GetName() : TEXT("null")),
+		JoinResult == EOnJoinSessionCompleteResult::Success ? FColor::Green : FColor::Yellow
+	);
+
+	if (JoinResult != EOnJoinSessionCompleteResult::Success)
 	{
-		GEngine->AddOnScreenDebugMessage(
-			-1, 5.f, bRegisterSuccessful? FColor::Green : FColor::Red,
-			FString::Printf(TEXT("SteamSession::OnJoinSessionComplete() Register Success: %hs"), bRegisterSuccessful? "True" : "False")
-		);
+		if (JoinRetryCount < MaxJoinRetries && SearchSettings.IsValid() && SearchSettings->SearchResults.Num() > 0)
+		{
+			const ULocalPlayer* LocalPlayer = World ? World->GetFirstLocalPlayerFromController() : nullptr;
+			if (!IsValid(LocalPlayer) || !LocalPlayer->GetPreferredUniqueNetId().IsValid())
+			{
+				ShowScreen(TEXT("Join retry failed: LocalPlayer or NetId invalid"), FColor::Red);
+				return;
+			}
+
+			++JoinRetryCount;
+			const bool bRetryIssued = SessionInterface->JoinSession(*LocalPlayer->GetPreferredUniqueNetId(), SessionName, SearchSettings->SearchResults[0]);
+			ShowScreen(
+				FString::Printf(TEXT("Join failed (%s). Retry %d/%d issued=%s"),
+					JoinResultToText(JoinResult),
+					JoinRetryCount,
+					MaxJoinRetries,
+					bRetryIssued ? TEXT("True") : TEXT("False")),
+				bRetryIssued ? FColor::Yellow : FColor::Red
+			);
+			return;
+		}
+
+		JoinRetryCount = 0;
+		ShowScreen(FString::Printf(TEXT("Join failed after retries (%s)"), JoinResultToText(JoinResult)), FColor::Red);
+		return;
 	}
+
+	JoinRetryCount = 0;
+
+	FString ConnectInfo;
+	bool bResolvedConnectInfo = SessionInterface->GetResolvedConnectString(SessionName, ConnectInfo);
+	if ((!bResolvedConnectInfo || ConnectInfo.IsEmpty()) && SearchSettings.IsValid() && SearchSettings->SearchResults.Num() > 0)
+	{
+		bResolvedConnectInfo = SessionInterface->GetResolvedConnectString(SearchSettings->SearchResults[0], NAME_GamePort, ConnectInfo);
+	}
+
+	if (!bResolvedConnectInfo || ConnectInfo.IsEmpty())
+	{
+		if (JoinResolveRetryCount < MaxJoinResolveRetries && SearchSettings.IsValid() && SearchSettings->SearchResults.Num() > 0)
+		{
+			const ULocalPlayer* LocalPlayer = World ? World->GetFirstLocalPlayerFromController() : nullptr;
+			if (!IsValid(LocalPlayer) || !LocalPlayer->GetPreferredUniqueNetId().IsValid())
+			{
+				ShowScreen(TEXT("Resolve retry failed: LocalPlayer or NetId invalid"), FColor::Red);
+				return;
+			}
+
+			++JoinResolveRetryCount;
+			const bool bRetryIssued = SessionInterface->JoinSession(*LocalPlayer->GetPreferredUniqueNetId(), SessionName, SearchSettings->SearchResults[0]);
+			ShowScreen(
+				FString::Printf(TEXT("Connect info unresolved. Retry %d/%d (issued=%s)"),
+					JoinResolveRetryCount,
+					MaxJoinResolveRetries,
+					bRetryIssued ? TEXT("True") : TEXT("False")),
+				bRetryIssued ? FColor::Yellow : FColor::Red
+			);
+			return;
+		}
+
+		JoinResolveRetryCount = 0;
+		ShowScreen(TEXT("Could not resolve connect info after retries"), FColor::Red);
+		return;
+	}
+
+	JoinResolveRetryCount = 0;
+
+	APlayerController* PlayerController = World ? World->GetFirstPlayerController() : nullptr;
+	if (!IsValid(PlayerController))
+	{
+		ShowScreen(TEXT("Join complete: PlayerController invalid"), FColor::Red);
+		return;
+	}
+
+	ShowScreen(FString::Printf(TEXT("ClientTravel -> %s"), *ConnectInfo), FColor::Green);
+	PlayerController->ClientTravel(ConnectInfo, ETravelType::TRAVEL_Absolute);
 }
 
 void USteamSession::OnSessionParticipantJoined(FName SessionName, const FUniqueNetId& UniqueNetId)
@@ -188,12 +317,22 @@ void USteamSession::OnFindSessionsComplete(bool bSuccess)
 		return;
 	}
 
-	const bool bCouldJoin = SessionInterface->JoinSession(0, FName("TestSession"), SearchSettings->SearchResults[0]);
+	ULocalPlayer* LocalPlayer = GetWorld() ? GetWorld()->GetFirstLocalPlayerFromController() : nullptr;
+	if (!IsValid(LocalPlayer) || !LocalPlayer->GetPreferredUniqueNetId().IsValid())
+	{
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("SteamSession::OnFindSessionsComplete() LocalPlayer/NetId invalid"));
+		}
+		return;
+	}
+
+	const bool bCouldJoin = SessionInterface->JoinSession(*LocalPlayer->GetPreferredUniqueNetId(), DebugSessionName, SearchSettings->SearchResults[0]);
 	if (GEngine)
 	{
 		GEngine->AddOnScreenDebugMessage(
 			-1, 5.f, bCouldJoin? FColor::Green : FColor::Red,
-			FString::Printf(TEXT("SteamSession::OnFindSessionsComplete() - Success: %hs"), bCouldJoin? "True" : "False")
+			FString::Printf(TEXT("SteamSession::OnFindSessionsComplete() Could join session: %hs"), bCouldJoin? "True" : "False")
 		);
 	}
 }

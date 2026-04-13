@@ -16,6 +16,7 @@ class SNAKE3D_API USteamSession : public UGameInstanceSubsystem
 	
 	// --- Properties ---
 private:
+	FName DebugSessionName;
 	IOnlineSessionPtr SessionInterface;
 	FOnlineSessionSettings SessionSettings;
 	TSharedPtr<FOnlineSessionSearch> SearchSettings;
@@ -24,7 +25,7 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	
 	UFUNCTION(BlueprintCallable)
-	void Host(FName SessionName) const;
+	void Host() const;
 	
 	UFUNCTION(BlueprintCallable)
 	void GetAvailableSessions();

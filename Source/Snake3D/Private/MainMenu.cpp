@@ -36,5 +36,5 @@ void UMainMenu::CreateSession(const FName SessionName) const
 		return;
 	}
 	
-	SteamSesh->Host(SessionName);
+	SteamSesh->Host();
 }
