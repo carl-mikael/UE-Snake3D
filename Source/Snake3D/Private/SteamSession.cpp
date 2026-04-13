@@ -153,131 +153,35 @@ void USteamSession::OnCreateSessionComplete(FName SessionName, bool bSuccess)
 
 void USteamSession::OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type JoinResult)
 {
-	constexpr int32 MaxJoinRetries = 5;
-	constexpr int32 MaxJoinResolveRetries = 10;
-	static int32 JoinRetryCount = 0;
-	static int32 JoinResolveRetryCount = 0;
-
-	UWorld* World = GetWorld();
-	auto ShowScreen = [](const FString& Msg, const FColor Color)
+	FString ConnectInfo;
+	bool bResolvedConnectInfo = SessionInterface->GetResolvedConnectString(SessionName, ConnectInfo);
+	if (!bResolvedConnectInfo)
 	{
 		if (GEngine)
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 6.f, Color, Msg);
-		}
-	};
-
-	auto JoinResultToText = [](const EOnJoinSessionCompleteResult::Type Result)
-	{
-		switch (Result)
-		{
-		case EOnJoinSessionCompleteResult::Success:
-			return TEXT("Success");
-		case EOnJoinSessionCompleteResult::SessionIsFull:
-			return TEXT("SessionIsFull");
-		case EOnJoinSessionCompleteResult::SessionDoesNotExist:
-			return TEXT("SessionDoesNotExist");
-		case EOnJoinSessionCompleteResult::CouldNotRetrieveAddress:
-			return TEXT("CouldNotRetrieveAddress");
-		case EOnJoinSessionCompleteResult::AlreadyInSession:
-			return TEXT("AlreadyInSession");
-		default:
-			return TEXT("Unknown");
-		}
-	};
-
-	if (!SessionInterface.IsValid())
-	{
-		ShowScreen(TEXT("Join complete: SessionInterface invalid"), FColor::Red);
-		return;
-	}
-
-	auto* NetDriver = World ? World->GetNetDriver() : nullptr;
-	ShowScreen(
-		FString::Printf(TEXT("Join complete. Result=%s(%d) Session=%s NetDriver=%s"),
-			JoinResultToText(JoinResult),
-			static_cast<int32>(JoinResult),
-			*SessionName.ToString(),
-			NetDriver ? *NetDriver->GetClass()->GetName() : TEXT("null")),
-		JoinResult == EOnJoinSessionCompleteResult::Success ? FColor::Green : FColor::Yellow
-	);
-
-	if (JoinResult != EOnJoinSessionCompleteResult::Success)
-	{
-		if (JoinRetryCount < MaxJoinRetries && SearchSettings.IsValid() && SearchSettings->SearchResults.Num() > 0)
-		{
-			const ULocalPlayer* LocalPlayer = World ? World->GetFirstLocalPlayerFromController() : nullptr;
-			if (!IsValid(LocalPlayer) || !LocalPlayer->GetPreferredUniqueNetId().IsValid())
-			{
-				ShowScreen(TEXT("Join retry failed: LocalPlayer or NetId invalid"), FColor::Red);
-				return;
-			}
-
-			++JoinRetryCount;
-			const bool bRetryIssued = SessionInterface->JoinSession(*LocalPlayer->GetPreferredUniqueNetId(), SessionName, SearchSettings->SearchResults[0]);
-			ShowScreen(
-				FString::Printf(TEXT("Join failed (%s). Retry %d/%d issued=%s"),
-					JoinResultToText(JoinResult),
-					JoinRetryCount,
-					MaxJoinRetries,
-					bRetryIssued ? TEXT("True") : TEXT("False")),
-				bRetryIssued ? FColor::Yellow : FColor::Red
+			GEngine->AddOnScreenDebugMessage(
+				-1, 5.f, FColor::Red,
+				TEXT("SteamSession::OnJoinSessionComplete() - Couldn't resolve connect info")
 			);
-			return;
 		}
-
-		JoinRetryCount = 0;
-		ShowScreen(FString::Printf(TEXT("Join failed after retries (%s)"), JoinResultToText(JoinResult)), FColor::Red);
+		
 		return;
 	}
-
-	JoinRetryCount = 0;
-
-	FString ConnectInfo;
-	bool bResolvedConnectInfo = SessionInterface->GetResolvedConnectString(SessionName, ConnectInfo);
-	if ((!bResolvedConnectInfo || ConnectInfo.IsEmpty()) && SearchSettings.IsValid() && SearchSettings->SearchResults.Num() > 0)
-	{
-		bResolvedConnectInfo = SessionInterface->GetResolvedConnectString(SearchSettings->SearchResults[0], NAME_GamePort, ConnectInfo);
-	}
-
-	if (!bResolvedConnectInfo || ConnectInfo.IsEmpty())
-	{
-		if (JoinResolveRetryCount < MaxJoinResolveRetries && SearchSettings.IsValid() && SearchSettings->SearchResults.Num() > 0)
-		{
-			const ULocalPlayer* LocalPlayer = World ? World->GetFirstLocalPlayerFromController() : nullptr;
-			if (!IsValid(LocalPlayer) || !LocalPlayer->GetPreferredUniqueNetId().IsValid())
-			{
-				ShowScreen(TEXT("Resolve retry failed: LocalPlayer or NetId invalid"), FColor::Red);
-				return;
-			}
-
-			++JoinResolveRetryCount;
-			const bool bRetryIssued = SessionInterface->JoinSession(*LocalPlayer->GetPreferredUniqueNetId(), SessionName, SearchSettings->SearchResults[0]);
-			ShowScreen(
-				FString::Printf(TEXT("Connect info unresolved. Retry %d/%d (issued=%s)"),
-					JoinResolveRetryCount,
-					MaxJoinResolveRetries,
-					bRetryIssued ? TEXT("True") : TEXT("False")),
-				bRetryIssued ? FColor::Yellow : FColor::Red
-			);
-			return;
-		}
-
-		JoinResolveRetryCount = 0;
-		ShowScreen(TEXT("Could not resolve connect info after retries"), FColor::Red);
-		return;
-	}
-
-	JoinResolveRetryCount = 0;
-
-	APlayerController* PlayerController = World ? World->GetFirstPlayerController() : nullptr;
+	
+	APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
 	if (!IsValid(PlayerController))
 	{
-		ShowScreen(TEXT("Join complete: PlayerController invalid"), FColor::Red);
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1, 5.f, FColor::Red,
+				TEXT("SteamSession::OnJoinSessionComplete() - PlayerController is invalid")
+			);
+		}
+		
 		return;
 	}
 
-	ShowScreen(FString::Printf(TEXT("ClientTravel -> %s"), *ConnectInfo), FColor::Green);
 	PlayerController->ClientTravel(ConnectInfo, ETravelType::TRAVEL_Absolute);
 }
 
