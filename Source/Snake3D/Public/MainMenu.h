@@ -20,5 +20,5 @@ private:
 	void SwitchToLevel(TSoftObjectPtr<UWorld> LevelAsset) const;
 	
 	UFUNCTION(BlueprintCallable)
-	void CreateSession(const FName SessionName) const;
+	void CreateSession() const;
 };

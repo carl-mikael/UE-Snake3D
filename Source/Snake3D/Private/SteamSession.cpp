@@ -13,8 +13,8 @@ void USteamSession::Initialize(FSubsystemCollectionBase& Collection)
 	UE_LOG(LogTemp, Log, TEXT("SteamSession::Initialize() - BeginPlay!!"));
 	
 	// ReSharper disable once CppBoundToDelegateMethodIsNotMarkedAsUFunction
-	const IOnlineSubsystem* SteamSubsystem = IOnlineSubsystem::Get();
-	if (!SteamSubsystem)
+	const IOnlineSubsystem* OnlineSubSystem = IOnlineSubsystem::Get();
+	if (!OnlineSubSystem)
 	{
 		if (GEngine)
 		{
@@ -27,7 +27,7 @@ void USteamSession::Initialize(FSubsystemCollectionBase& Collection)
 		return;
 	}
 	
-	SessionInterface = SteamSubsystem->GetSessionInterface();
+	SessionInterface = OnlineSubSystem->GetSessionInterface();
 	if (!SessionInterface.IsValid())
 	{
 		UE_LOG(LogTemp, Error, TEXT("SteamSession::Initialize() - SessionInterface is null"));

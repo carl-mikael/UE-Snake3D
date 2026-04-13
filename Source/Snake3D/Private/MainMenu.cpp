@@ -27,9 +27,9 @@ void UMainMenu::SwitchToLevel(const TSoftObjectPtr<UWorld> LevelAsset) const
 	}
 }
 
-void UMainMenu::CreateSession(const FName SessionName) const
+void UMainMenu::CreateSession() const
 {
-	USteamSession* SteamSesh = GetGameInstance()->GetSubsystem<USteamSession>();
+	const USteamSession* SteamSesh = GetGameInstance()->GetSubsystem<USteamSession>();
 	if (!IsValid(SteamSesh))
 	{
 		UE_LOG(LogTemp, Error, TEXT("MainMenu::CreateSession() - SteamSesh is null"));
