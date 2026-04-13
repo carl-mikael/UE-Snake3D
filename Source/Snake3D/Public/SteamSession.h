@@ -6,8 +6,8 @@
 #include "OnlineSessionSettings.h"
 #include "Interfaces/OnlineSessionInterface.h"
 #include "Subsystems/GameInstanceSubsystem.h"
+#include "OnlineSubsystem.h"
 #include "SteamSession.generated.h"
-
 
 UCLASS()
 class SNAKE3D_API USteamSession : public UGameInstanceSubsystem
@@ -16,8 +16,8 @@ class SNAKE3D_API USteamSession : public UGameInstanceSubsystem
 	
 	// --- Properties ---
 private:
-	FName DebugSessionName;
 	IOnlineSessionPtr SessionInterface;
+	FName DefaultSessionName;
 	FOnlineSessionSettings SessionSettings;
 	TSharedPtr<FOnlineSessionSearch> SearchSettings;
 
@@ -25,15 +25,13 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	
 	UFUNCTION(BlueprintCallable)
-	void Host() const;
+	void Host(const bool bLan, TSoftObjectPtr<UWorld> Level) const;
 	
 	UFUNCTION(BlueprintCallable)
-	void GetAvailableSessions();
+	void Join(const bool bLan) const;
 	
 private:
 	void OnCreateSessionComplete(FName SessionName, bool bSuccess);
 	void OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type JoinResult);
-	void OnSessionParticipantJoined(FName SessionName, const FUniqueNetId& UniqueNetId);
 	void OnFindSessionsComplete(bool bSuccess);
-	void OnRegisterPlayersComplete(FName SessionName, const TArray<TSharedRef<const FUniqueNetId>>& UniqueNetIds, bool SuccessFull);
 };

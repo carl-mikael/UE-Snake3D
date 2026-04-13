@@ -2,9 +2,8 @@
 
 
 #include "SteamSession.h"
-#include "OnlineSubsystem.h"
-#include "OnlineSessionSettings.h"
-#include "Interfaces/OnlineSessionInterface.h"
+
+#include "Kismet/GameplayStatics.h"
 
 void USteamSession::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -33,9 +32,6 @@ void USteamSession::Initialize(FSubsystemCollectionBase& Collection)
 		UE_LOG(LogTemp, Error, TEXT("SteamSession::Initialize() - SessionInterface is null"));
 		return;
 	}
-	SearchSettings = MakeShared<FOnlineSessionSearch>();
-	
-	DebugSessionName = TEXT("TestSession");
 	
 	SessionSettings = FOnlineSessionSettings();
 	SessionSettings.bIsLANMatch = true;
@@ -44,22 +40,24 @@ void USteamSession::Initialize(FSubsystemCollectionBase& Collection)
 	SessionSettings.bAntiCheatProtected = false;
 	SessionSettings.bUsesStats = false;
 	SessionSettings.bUseLobbiesVoiceChatIfAvailable = false;
-	SessionSettings.NumPublicConnections = 2;
+	SessionSettings.NumPublicConnections = 100;
 	SessionSettings.bAllowJoinInProgress = true;
-	SessionSettings.bAllowJoinViaPresence = true; // Allows Steam "Join Game"
-	SessionSettings.bUsesPresence = true;         // Required for Steam Lobbies
-	SessionSettings.bShouldAdvertise = true;      // Makes it searchable
-	SessionSettings.bUseLobbiesIfAvailable = true; // Essential for Steam P2P
+	SessionSettings.bAllowJoinViaPresence = true;
+	SessionSettings.bUsesPresence = true;
+	SessionSettings.bShouldAdvertise = true;
+	SessionSettings.bUseLobbiesIfAvailable = true;
 	SessionSettings.bAllowInvites = true;
+	
+	SearchSettings = MakeShared<FOnlineSessionSearch>();
+	
+	DefaultSessionName = TEXT("DefaultSession");
 	
 	SessionInterface->OnCreateSessionCompleteDelegates.AddUObject(this, &USteamSession::OnCreateSessionComplete);
 	SessionInterface->OnJoinSessionCompleteDelegates.AddUObject(this, &USteamSession::OnJoinSessionComplete);
-	SessionInterface->OnSessionParticipantJoinedDelegates.AddUObject(this, &USteamSession::OnSessionParticipantJoined);
 	SessionInterface->OnFindSessionsCompleteDelegates.AddUObject(this, &USteamSession::OnFindSessionsComplete);
-	SessionInterface->OnRegisterPlayersCompleteDelegates.AddUObject(this, &USteamSession::OnRegisterPlayersComplete);
 }
 
-void USteamSession::Host() const
+void USteamSession::Host(const bool bLan, TSoftObjectPtr<UWorld> Level) const
 {
 	const ULocalPlayer* LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
 	if (!IsValid(LocalPlayer))
@@ -88,7 +86,8 @@ void USteamSession::Host() const
 		return;
 	}
 	
-	SessionInterface->CreateSession(*LocalPlayer->GetPreferredUniqueNetId(), DebugSessionName, SessionSettings);
+	SearchSettings->bIsLanQuery = bLan;
+	SessionInterface->CreateSession(*LocalPlayer->GetPreferredUniqueNetId(), DefaultSessionName, SessionSettings);
 	
 	if (GEngine)
 	{
@@ -97,9 +96,11 @@ void USteamSession::Host() const
 			TEXT("SteamSession::Host() CreateSession requested")
 		);
 	}
+	
+	UGameplayStatics::OpenLevelBySoftObjectPtr(GetWorld(), Level, true, TEXT("listen"));
 }
 
-void USteamSession::GetAvailableSessions()
+void USteamSession::Join(const bool bLan) const
 {
 	if (GEngine)
 	{
@@ -115,14 +116,14 @@ void USteamSession::GetAvailableSessions()
 		{
 			GEngine->AddOnScreenDebugMessage(
 				-1, 5.f, FColor::Red,
-				TEXT("SteamSession::GetAvailableSessions() SearchSettings invalid")
+				TEXT("SteamSession::GetAvailableSessions() DefaultSearchSettings invalid")
 			);
 		}
 		
 		return;
 	}
 	
-	SearchSettings->bIsLanQuery = true;
+	SearchSettings->bIsLanQuery = bLan;
 	SessionInterface->FindSessions(0, SearchSettings.ToSharedRef());
 }
 
@@ -141,7 +142,7 @@ void USteamSession::OnCreateSessionComplete(FName SessionName, bool bSuccess)
 		return;
 	}
 
-	const bool bStartSuccess = SessionInterface->StartSession(SessionName);
+	const bool bStartSuccess = SessionInterface->StartSession(DefaultSessionName);
 	if (GEngine)
 	{
 		GEngine->AddOnScreenDebugMessage(
@@ -154,7 +155,7 @@ void USteamSession::OnCreateSessionComplete(FName SessionName, bool bSuccess)
 void USteamSession::OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type JoinResult)
 {
 	FString ConnectInfo;
-	bool bResolvedConnectInfo = SessionInterface->GetResolvedConnectString(SessionName, ConnectInfo);
+	const bool bResolvedConnectInfo = SessionInterface->GetResolvedConnectString(SessionName, ConnectInfo);
 	if (!bResolvedConnectInfo)
 	{
 		if (GEngine)
@@ -185,17 +186,6 @@ void USteamSession::OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompl
 	PlayerController->ClientTravel(ConnectInfo, ETravelType::TRAVEL_Absolute);
 }
 
-void USteamSession::OnSessionParticipantJoined(FName SessionName, const FUniqueNetId& UniqueNetId)
-{
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(
-			-1, 5.f, FColor::Green,
-			TEXT("SteamSession::OnSessionParticipantJoined()")
-		);
-	}
-}
-
 void USteamSession::OnFindSessionsComplete(bool bSuccess)
 {
 	if (GEngine)
@@ -204,7 +194,7 @@ void USteamSession::OnFindSessionsComplete(bool bSuccess)
 			-1, 5.f, bSuccess ? FColor::Green : FColor::Red,
 			FString::Printf(TEXT("SteamSession::OnFindSessionsComplete() - Success: %hs"), bSuccess? "True" : "False")
 		);
-		
+	
 		if (!bSuccess)
 		{
 			return;
@@ -217,11 +207,11 @@ void USteamSession::OnFindSessionsComplete(bool bSuccess)
 		GEngine->AddOnScreenDebugMessage(
 			-1, 5.f, FColor::Red,
 			TEXT("SteamSession::OnFindSessionsComplete() No sessions found"));
-		
+	
 		return;
 	}
-
-	ULocalPlayer* LocalPlayer = GetWorld() ? GetWorld()->GetFirstLocalPlayerFromController() : nullptr;
+	
+	const ULocalPlayer* LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
 	if (!IsValid(LocalPlayer) || !LocalPlayer->GetPreferredUniqueNetId().IsValid())
 	{
 		if (GEngine)
@@ -230,25 +220,14 @@ void USteamSession::OnFindSessionsComplete(bool bSuccess)
 		}
 		return;
 	}
-
-	const bool bCouldJoin = SessionInterface->JoinSession(*LocalPlayer->GetPreferredUniqueNetId(), DebugSessionName, SearchSettings->SearchResults[0]);
+	
+	const FOnlineSessionSearchResult& FirstResult = SearchSettings->SearchResults[0];
+	const bool bCouldJoin = SessionInterface->JoinSession(*LocalPlayer->GetPreferredUniqueNetId(), DefaultSessionName, FirstResult);
 	if (GEngine)
 	{
 		GEngine->AddOnScreenDebugMessage(
 			-1, 5.f, bCouldJoin? FColor::Green : FColor::Red,
 			FString::Printf(TEXT("SteamSession::OnFindSessionsComplete() Could join session: %hs"), bCouldJoin? "True" : "False")
-		);
-	}
-}
-
-void USteamSession::OnRegisterPlayersComplete(FName SessionName,
-	const TArray<TSharedRef<const FUniqueNetId>>& UniqueNetIds, bool SuccessFull)
-{
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(
-			-1, 5.f, SuccessFull? FColor::Green : FColor::Red,
-			FString::Printf(TEXT("SteamSession::OnRegisterPlayersComplete() - Success: %hs"), SuccessFull? "True" : "False")
 		);
 	}
 }

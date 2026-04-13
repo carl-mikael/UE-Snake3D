@@ -14,11 +14,4 @@ class SNAKE3D_API UMainMenu : public UUserWidget
 {
 	GENERATED_BODY()
 	
-private:
-	// --- Methods ---
-	UFUNCTION(BlueprintCallable)
-	void SwitchToLevel(TSoftObjectPtr<UWorld> LevelAsset) const;
-	
-	UFUNCTION(BlueprintCallable)
-	void CreateSession() const;
 };
