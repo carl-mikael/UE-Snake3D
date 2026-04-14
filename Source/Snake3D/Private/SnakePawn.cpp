@@ -152,6 +152,20 @@ void ASnakePawn::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimit
 	}
 }
 
+void ASnakePawn::Server_SendTransform_Implementation(const FVector NewLocation)
+{
+	SetActorLocation(NewLocation);
+	Multicast_UpdateTransform(NewLocation);
+}
+
+void ASnakePawn::Multicast_UpdateTransform_Implementation(const FVector NewLocation)
+{
+	if (!IsLocallyControlled())
+	{
+		SetActorLocation(NewLocation);
+	}
+}
+
 void ASnakePawn::MoveBodyCells(const float DeltaTime)
 {
 	for (int i=0; i<BodyCellActors.Num(); ++i)
@@ -185,6 +199,11 @@ void ASnakePawn::Tick(const float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (IsLocallyControlled())
+	{
+		Server_SendTransform(GetActorLocation());
+	}
+	
 	MoveBodyCells(DeltaTime);
 }
 

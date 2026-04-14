@@ -69,5 +69,12 @@ protected:
 private:
 	UFUNCTION()
 	void OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+	
+	UFUNCTION(Server, Unreliable)
+	void Server_SendTransform(const FVector NewLocation);
+	
+	UFUNCTION(NetMulticast, Unreliable)
+	void Multicast_UpdateTransform(const FVector NewLocation);
+	
 	void MoveBodyCells(float DeltaTime);
 };
