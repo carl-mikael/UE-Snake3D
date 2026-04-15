@@ -8,10 +8,12 @@
 #include "SnakeMovementComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Net/UnrealNetwork.h"
 
 // Sets default values
 ASnakePawn::ASnakePawn()
 {
+	bReplicates = true;
 	PrimaryActorTick.bCanEverTick = true;
 
 	const FName HeadMeshAssetPath = TEXT("/Engine/BasicShapes/Cone.Cone");
@@ -25,14 +27,14 @@ ASnakePawn::ASnakePawn()
 	
 	CameraSpring = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraSpring"));
 	CameraSpring->SetupAttachment(RootComponent);
-	CameraSpring->SocketOffset = FVector(0.0f, 0.0f, 200.0f);
+	CameraSpring->SocketOffset = FVector(0.0f, 0.0f, 400.0f);
 	CameraSpring->TargetArmLength = 85.0f;
 	CameraSpring->bEnableCameraLag = true;
 	CameraSpring->bEnableCameraRotationLag = true;
 	
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(CameraSpring);
-	const FVector CameraLocation = FVector(-50.0f, 0.0f, 0.0f);
+	const FVector CameraLocation = FVector(-100.0f, 0.0f, 0.0f);
 	Camera->AddLocalOffset(CameraLocation);
 	const FRotator CameraRotation = FRotator(-35.0f, 0.0f, 0.0f);
 	Camera->AddLocalRotation(CameraRotation);
@@ -44,37 +46,18 @@ ASnakePawn::ASnakePawn()
 	MovementSpeed = 200.0f;
 }
 
+void ASnakePawn::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	
+	DOREPLIFETIME(ASnakePawn, NrOfBodyCells);
+}
+
 void ASnakePawn::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
 	
 	UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnConstruction()!"));
-}
-
-bool ASnakePawn::AddBodyCell()
-{
-	const int BodyCellCount = BodyCellActors.Num();
-	const FString BodyCellName = FString::Printf(TEXT("BodyCell%d"), BodyCellCount);	
-	UChildActorComponent* ChildActorComponent = NewObject<UChildActorComponent>(this, *BodyCellName);
-	ChildActorComponent->RegisterComponent();
-	ChildActorComponent->SetChildActorClass(BodyCellActorClass);
-	//ChildActorComponent->AttachToComponent(HeadMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
-	ChildActorComponents.Add(ChildActorComponent);
-	const AActor* ChildActor = ChildActorComponent->GetChildActor();
-	if (!IsValid(ChildActor))
-	{
-		UE_LOG(LogTemp, Error, TEXT("SnakePawn::BeginPlay() - Failed to spawn body cell actor i: %i"), BodyCellCount);
-		return false;
-	}
-	
-	BodyCellActors.Add(ChildActorComponent->GetChildActor());
-	
-	const float XOffset = -BodyCellOffset * (BodyCellCount + 1);
-	const FVector Offset = FVector(XOffset, 0.0f, 0.0f);
-	const FVector BodyCellWorldLocation = GetRootComponent()->GetComponentLocation() + Offset;
-	ChildActor->GetRootComponent()->SetWorldLocation(BodyCellWorldLocation);
-	
-	return true;
 }
 
 // Called when the game starts or when spawned
@@ -85,13 +68,12 @@ void ASnakePawn::BeginPlay()
 	UE_LOG(LogTemp, Log, TEXT("SnakePawn::BeginPlay()!"));
 	
 	HeadMesh->OnComponentHit.AddUniqueDynamic(this, &ASnakePawn::OnHit);
-	
+
 	if (IsValid(BodyCellActorClass))
 	{
 		for (int i = 0; i < NrOfBodyCells; ++i)
 		{
-			if (!AddBodyCell())
-				break;
+			AddBodyCell();
 		}
 	}
 	else
@@ -107,9 +89,50 @@ void ASnakePawn::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	HeadMesh->OnComponentHit.RemoveDynamic(this, &ASnakePawn::OnHit);
 }
 
+void ASnakePawn::Server_AddBodyCell_Implementation()
+{
+	NrOfBodyCells++;
+	Multicast_AddBodyCell();
+}
+
+void ASnakePawn::Multicast_AddBodyCell_Implementation()
+{
+	AddBodyCell();
+}
+
+void ASnakePawn::AddBodyCell()
+{
+	const int BodyCellCount = BodyCellActors.Num();
+	const FString BodyCellName = FString::Printf(TEXT("BodyCell%d"), BodyCellCount);	
+	UChildActorComponent* ChildActorComponent = NewObject<UChildActorComponent>(this, *BodyCellName);
+	ChildActorComponent->RegisterComponent();
+	ChildActorComponent->SetChildActorClass(BodyCellActorClass);
+	//ChildActorComponent->AttachToComponent(HeadMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+	ChildActorComponents.Add(ChildActorComponent);
+	const AActor* ChildActor = ChildActorComponent->GetChildActor();
+	if (!IsValid(ChildActor))
+	{
+		UE_LOG(LogTemp, Error, TEXT("SnakePawn::BeginPlay() - Failed to spawn body cell actor i: %i"), BodyCellCount);
+		return;
+	}
+	
+	const AActor* LastBodyCell = !BodyCellActors.IsEmpty()? BodyCellActors.Last() : this;
+	
+	BodyCellActors.Add(ChildActorComponent->GetChildActor());
+	
+	const FVector Offset = LastBodyCell->GetActorForwardVector() * -BodyCellOffset;
+	const FVector BodyCellWorldLocation = LastBodyCell->GetRootComponent()->GetComponentLocation() + Offset;
+	ChildActor->GetRootComponent()->SetWorldLocation(BodyCellWorldLocation);
+}
+
 void ASnakePawn::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
                        FVector NormalImpulse, const FHitResult& Hit)
 {
+	if (!HasAuthority())
+	{
+		return;
+	}
+	
 	UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit()"));
 	
 	// Food Collision
@@ -118,10 +141,7 @@ void ASnakePawn::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimit
 	{
 		UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit - Food!"));
 		FoodActor->Destroy();
-		if (!AddBodyCell())
-		{
-			UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit - Failed to add BodyCell"));
-		}
+		Server_AddBodyCell();
 	}
 	
 	// HeadCollision
@@ -152,18 +172,26 @@ void ASnakePawn::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimit
 	}
 }
 
-void ASnakePawn::Server_SendTransform_Implementation(const FVector NewLocation)
+void ASnakePawn::Server_SendTransform_Implementation(const FVector NewLocation, const float DeltaTime)
 {
-	SetActorLocation(NewLocation);
-	Multicast_UpdateTransform(NewLocation);
+	Multicast_UpdateTransform(NewLocation, DeltaTime);
 }
 
-void ASnakePawn::Multicast_UpdateTransform_Implementation(const FVector NewLocation)
+void ASnakePawn::Multicast_UpdateTransform_Implementation(const FVector NewLocation, const float DeltaTime)
 {
-	if (!IsLocallyControlled())
+	if (IsLocallyControlled())
 	{
-		SetActorLocation(NewLocation);
+		return;
 	}
+	
+	const FVector Smoothed = FMath::VInterpTo(
+		GetActorLocation(),
+		NewLocation,
+		DeltaTime,
+		10.0f
+	);
+
+	SetActorLocation(Smoothed);
 }
 
 void ASnakePawn::MoveBodyCells(const float DeltaTime)
@@ -201,7 +229,7 @@ void ASnakePawn::Tick(const float DeltaTime)
 
 	if (IsLocallyControlled())
 	{
-		Server_SendTransform(GetActorLocation());
+		Server_SendTransform(GetActorLocation(), DeltaTime);
 	}
 	
 	MoveBodyCells(DeltaTime);

@@ -33,7 +33,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UCameraComponent> Camera;
 	
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Body")
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Replicated, Category = "Body")
 	int NrOfBodyCells;
 	
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Body")
@@ -54,6 +54,7 @@ protected:
 	// --- Methods ---
 public:
 	ASnakePawn();
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void Tick(const float DeltaTime) override;
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
@@ -62,19 +63,26 @@ public:
 
 protected:
 	virtual void OnConstruction(const FTransform& Transform) override;
-	bool AddBodyCell();
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
 private:
+	UFUNCTION(Server, Reliable)
+	void Server_AddBodyCell();
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_AddBodyCell();
+	
+	void AddBodyCell();
+	
 	UFUNCTION()
 	void OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 	
 	UFUNCTION(Server, Unreliable)
-	void Server_SendTransform(const FVector NewLocation);
+	void Server_SendTransform(const FVector NewLocation, const float DeltaTime);
 	
 	UFUNCTION(NetMulticast, Unreliable)
-	void Multicast_UpdateTransform(const FVector NewLocation);
+	void Multicast_UpdateTransform(const FVector NewLocation, const float DeltaTime);
 	
 	void MoveBodyCells(float DeltaTime);
 };
