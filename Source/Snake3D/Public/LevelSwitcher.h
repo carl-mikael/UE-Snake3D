@@ -15,5 +15,8 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 
 	UFUNCTION(BlueprintCallable)
-	void SwitchToLevel(TSoftObjectPtr<UWorld> LevelAsset) const;
+	void SwitchToLevel(const TSoftObjectPtr<UWorld> LevelAsset, const bool bUseServerTravel = false) const;
+	
+	UFUNCTION(Server, Reliable)
+	void Server_TravelTo(const FString& URL) const;
 };
