@@ -20,6 +20,7 @@ ASnakePawn::ASnakePawn()
 	HeadMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HeadMesh"));
     HeadMesh->SetStaticMesh(ConstructorHelpers::FObjectFinder<UStaticMesh>(*HeadMeshAssetPath.ToString()).Object);
 	HeadMesh->SetNotifyRigidBodyCollision(true);
+	HeadMesh->bReplicatePhysicsToAutonomousProxy = false;
 	SetRootComponent(HeadMesh);
 	
 	Movement = CreateDefaultSubobject<USnakeMovementComponent>(TEXT("Movement"));
@@ -128,48 +129,55 @@ void ASnakePawn::AddBodyCell()
 void ASnakePawn::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
                        FVector NormalImpulse, const FHitResult& Hit)
 {
-	if (!HasAuthority())
+	if (IsLocallyControlled())
 	{
-		return;
-	}
+		UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit()"));
 	
-	UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit()"));
+		// Food Collision
+		AFood* FoodActor = Cast<AFood>(OtherActor);
+		if (IsValid(FoodActor))
+		{
+			UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit - Food!"));
+			FoodActor->SetActorEnableCollision(false);
+			FoodActor->SetHidden(true);
+			Server_Destroy(FoodActor);
+			
+			Server_AddBodyCell();
+		}
 	
-	// Food Collision
-	AActor* FoodActor = Cast<AFood>(OtherActor);
-	if (IsValid(FoodActor))
-	{
-		UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit - Food!"));
-		FoodActor->Destroy();
-		Server_AddBodyCell();
-	}
+		// HeadCollision
+		const AActor* SnakePawn = Cast<ASnakePawn>(OtherActor);
+		if (IsValid(SnakePawn))
+		{
+			UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit - Hit SnakePawnHead!"));
+			Destroy();
+		}
 	
-	// HeadCollision
-	const AActor* SnakePawn = Cast<ASnakePawn>(OtherActor);
-	if (IsValid(SnakePawn))
-	{
-		UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit - Hit SnakePawnHead!"));
-		Destroy();
-	}
-	
-	// BodyCellCollision
-	const AActor* BodyCellActor = Cast<ASnakeBodyCell>(OtherActor);
-	if (IsValid(BodyCellActor))
-	{
-		const bool bIsSelf = (OtherActor->GetParentActor() == this);
-		const FString Msg = bIsSelf? TEXT("self") : TEXT("other");
-		UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit - Hit %s BodyCellActor!"), *Msg);
+		// BodyCellCollision
+		const AActor* BodyCellActor = Cast<ASnakeBodyCell>(OtherActor);
+		if (IsValid(BodyCellActor))
+		{
+			const bool bIsSelf = (OtherActor->GetParentActor() == this);
+			const FString Msg = bIsSelf? TEXT("self") : TEXT("other");
+			UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit - Hit %s BodyCellActor!"), *Msg);
 		
-		// Epic coding
-		if (bIsSelf)
-		{
-			Destroy();
-		}
-		else
-		{
-			Destroy();
+			// Epic coding
+			if (bIsSelf)
+			{
+				Destroy();
+			}
+			else
+			{
+				Destroy();
+			}
 		}
 	}
+}
+
+void ASnakePawn::Server_OnHit_Implementation(UPrimitiveComponent* HitComp, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+{
+
 }
 
 void ASnakePawn::Server_SendTransform_Implementation(const FVector NewLocation, const float DeltaTime)
@@ -192,6 +200,11 @@ void ASnakePawn::Multicast_UpdateTransform_Implementation(const FVector NewLocat
 	);
 
 	SetActorLocation(Smoothed);
+}
+
+void ASnakePawn::Server_Destroy_Implementation(AFood* Food) const
+{
+	Food->Destroy();
 }
 
 void ASnakePawn::MoveBodyCells(const float DeltaTime)

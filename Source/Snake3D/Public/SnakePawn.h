@@ -78,11 +78,16 @@ private:
 	UFUNCTION()
 	void OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 	
+	UFUNCTION(Server, Reliable)
+	void Server_OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+	
 	UFUNCTION(Server, Unreliable)
 	void Server_SendTransform(const FVector NewLocation, const float DeltaTime);
 	
+	UFUNCTION(Server, Reliable)
+	void Server_Destroy(AFood* Food) const;
+	
 	UFUNCTION(NetMulticast, Unreliable)
 	void Multicast_UpdateTransform(const FVector NewLocation, const float DeltaTime);
-	
 	void MoveBodyCells(float DeltaTime);
 };
