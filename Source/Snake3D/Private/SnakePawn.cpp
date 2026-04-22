@@ -7,6 +7,7 @@
 #include "SnakeBodyCell.h"
 #include "SnakeMovementComponent.h"
 #include "Camera/CameraComponent.h"
+#include "GameFramework/PlayerState.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Net/UnrealNetwork.h"
 
@@ -93,6 +94,17 @@ void ASnakePawn::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void ASnakePawn::Server_AddBodyCell_Implementation()
 {
 	NrOfBodyCells++;
+	APlayerState* PState = GetPlayerState();
+	if (IsValid(PState))
+	{
+		PState->SetScore(PState->GetScore() + 1);
+		UE_LOG(LogTemp, Log, TEXT("SnakePawn::Server_AddBodyCell_Implementation() - New Score: %f"), PState->GetScore());
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("SnakePawn::Server_AddBodyCell_Implementation() - PlayerSnakeState is invalid"));
+	}
+	
 	Multicast_AddBodyCell();
 }
 
