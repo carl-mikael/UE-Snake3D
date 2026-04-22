@@ -85,7 +85,7 @@ private:
 	void Server_SendTransform(const FVector NewLocation, const float DeltaTime);
 	
 	UFUNCTION(Server, Reliable)
-	void Server_Destroy(AFood* Food) const;
+	void Server_Destroy(AActor* Actor) const;
 	
 	UFUNCTION(NetMulticast, Unreliable)
 	void Multicast_UpdateTransform(const FVector NewLocation, const float DeltaTime);

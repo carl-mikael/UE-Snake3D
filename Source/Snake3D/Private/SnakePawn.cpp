@@ -141,7 +141,6 @@ void ASnakePawn::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimit
 			FoodActor->SetActorEnableCollision(false);
 			FoodActor->SetHidden(true);
 			Server_Destroy(FoodActor);
-			
 			Server_AddBodyCell();
 		}
 	
@@ -150,7 +149,9 @@ void ASnakePawn::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimit
 		if (IsValid(SnakePawn))
 		{
 			UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit - Hit SnakePawnHead!"));
-			Destroy();
+			this->SetHidden(true);
+			this->SetActorEnableCollision(false);
+			Server_Destroy(this);
 		}
 	
 		// BodyCellCollision
@@ -160,16 +161,10 @@ void ASnakePawn::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimit
 			const bool bIsSelf = (OtherActor->GetParentActor() == this);
 			const FString Msg = bIsSelf? TEXT("self") : TEXT("other");
 			UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit - Hit %s BodyCellActor!"), *Msg);
-		
-			// Epic coding
-			if (bIsSelf)
-			{
-				Destroy();
-			}
-			else
-			{
-				Destroy();
-			}
+
+			this->SetHidden(true);
+			this->SetActorEnableCollision(false);
+			Server_Destroy(this);
 		}
 	}
 }
@@ -202,9 +197,9 @@ void ASnakePawn::Multicast_UpdateTransform_Implementation(const FVector NewLocat
 	SetActorLocation(Smoothed);
 }
 
-void ASnakePawn::Server_Destroy_Implementation(AFood* Food) const
+void ASnakePawn::Server_Destroy_Implementation(AActor* Actor) const
 {
-	Food->Destroy();
+	Actor->Destroy();
 }
 
 void ASnakePawn::MoveBodyCells(const float DeltaTime)
