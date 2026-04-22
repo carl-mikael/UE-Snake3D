@@ -138,9 +138,7 @@ void ASnakePawn::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimit
 		if (IsValid(FoodActor))
 		{
 			UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit - Food!"));
-			FoodActor->SetActorEnableCollision(false);
-			FoodActor->SetHidden(true);
-			Server_Destroy(FoodActor);
+			this->DestroyActor(FoodActor);
 			Server_AddBodyCell();
 		}
 	
@@ -149,9 +147,7 @@ void ASnakePawn::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimit
 		if (IsValid(SnakePawn))
 		{
 			UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit - Hit SnakePawnHead!"));
-			this->SetHidden(true);
-			this->SetActorEnableCollision(false);
-			Server_Destroy(this);
+			this->DestroyActor(this);
 		}
 	
 		// BodyCellCollision
@@ -161,18 +157,17 @@ void ASnakePawn::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimit
 			const bool bIsSelf = (OtherActor->GetParentActor() == this);
 			const FString Msg = bIsSelf? TEXT("self") : TEXT("other");
 			UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit - Hit %s BodyCellActor!"), *Msg);
-
-			this->SetHidden(true);
-			this->SetActorEnableCollision(false);
-			Server_Destroy(this);
+			this->DestroyActor(this);
 		}
 	}
 }
 
-void ASnakePawn::Server_OnHit_Implementation(UPrimitiveComponent* HitComp, AActor* OtherActor,
-	UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+void ASnakePawn::DestroyActor(AActor* Actor) const
 {
-
+	Actor->SetHidden(true);
+	Actor->SetActorEnableCollision(false);
+	Actor->SetActorTickEnabled(false);
+	Server_Destroy(Actor);
 }
 
 void ASnakePawn::Server_SendTransform_Implementation(const FVector NewLocation, const float DeltaTime)

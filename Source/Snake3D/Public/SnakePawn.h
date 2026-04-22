@@ -78,11 +78,10 @@ private:
 	UFUNCTION()
 	void OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 	
-	UFUNCTION(Server, Reliable)
-	void Server_OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
-	
 	UFUNCTION(Server, Unreliable)
 	void Server_SendTransform(const FVector NewLocation, const float DeltaTime);
+
+	void DestroyActor(AActor* Actor) const;
 	
 	UFUNCTION(Server, Reliable)
 	void Server_Destroy(AActor* Actor) const;
