@@ -6,6 +6,8 @@
 #include "GameFramework/Actor.h"
 #include "Food.generated.h"
 
+
+
 UCLASS()
 class SNAKE3D_API AFood : public AActor
 {
@@ -20,6 +22,7 @@ protected:
 public:	
 	// Sets default values for this actor's properties
 	AFood();
+	
 
 protected:
 	// Called when the game starts or when spawned

@@ -3,6 +3,7 @@
 
 #include "PlayArea.h"
 
+#include "Food.h"
 #include "Components/InstancedStaticMeshComponent.h"
 
 // Sets default values
@@ -14,11 +15,14 @@ APlayArea::APlayArea()
 	SceneComponent = CreateDefaultSubobject<USceneComponent>("SceneComponent");
 	SetRootComponent(SceneComponent);
 
-	FloorMesh = CreateDefaultSubobject<UInstancedStaticMeshComponent>("FloorMesh");
-	FloorMesh->SetupAttachment(SceneComponent);
+	FloorMeshInstances = CreateDefaultSubobject<UInstancedStaticMeshComponent>("FloorMesh");
+	FloorMeshInstances->SetupAttachment(SceneComponent);
 	
-	WallMesh = CreateDefaultSubobject<UInstancedStaticMeshComponent>("WallMesh");
-	WallMesh->SetupAttachment(SceneComponent);
+	WallMeshInstances = CreateDefaultSubobject<UInstancedStaticMeshComponent>("WallMesh");
+	WallMeshInstances->SetupAttachment(SceneComponent);
+	
+	FoodChildActorComponent = CreateDefaultSubobject<UChildActorComponent>("FoodChildActorComponent");
+	FoodChildActorComponent->SetupAttachment(SceneComponent);
 	
 	GridSize = 10;
 	TileSize = 100;
@@ -27,12 +31,18 @@ APlayArea::APlayArea()
 	WallScale = 1.5f;
 }
 
+void APlayArea::OnFoodDestroyed(AActor* Food)
+{
+	SpawnFood();
+}
+
 // Called when the game starts or when spawned
 void APlayArea::BeginPlay()
 {
 	Super::BeginPlay();
 	
 	SpawnTiles();
+	SpawnFood();
 }
 
 // Called every frame
@@ -44,13 +54,13 @@ void APlayArea::Tick(float DeltaTime)
 
 void APlayArea::SpawnTiles() const
 {
-	if (!IsValid(FloorMesh))
+	if (!IsValid(FloorMeshInstances))
 	{
 		UE_LOG(LogTemp, Error, TEXT("Floor mesh is invalid"));
 		return;
 	}
-	
-	FVector BaseWorldPos = SceneComponent->GetComponentLocation();
+
+	const FVector BaseWorldPos = SceneComponent->GetComponentLocation();
 	for (int x = 0; x < GridSize; x++)
 	{
 		for (int y = 0; y < GridSize; y++)
@@ -63,11 +73,7 @@ void APlayArea::SpawnTiles() const
 				FTransform WallTransform = FTransform(WallPosition);
 				const FVector WallScaleVector = FVector(WallScale, WallScale, WallScale);
 				WallTransform.SetScale3D(WallScaleVector);
-				// if (bIsVerticalWall)
-				// {
-				// 	WallTransform.SetRotation(FQuat(FRotator(0.f, 90.f, 0.f)));
-				// }
-				WallMesh->AddInstance(WallTransform, true);
+				WallMeshInstances->AddInstance(WallTransform, true);
 			}
 			else
 			{
@@ -75,8 +81,44 @@ void APlayArea::SpawnTiles() const
 				FTransform TileTransform = FTransform(TilePosition);
 				const FVector TileScaleVector = FVector(TileScale, TileScale, TileScale);
 				TileTransform.SetScale3D(TileScaleVector);
-				FloorMesh->AddInstance(TileTransform, true);
+				FloorMeshInstances->AddInstance(TileTransform, true);
 			}
 		}
+	}
+}
+
+FVector APlayArea::GetRandomFloorLocation() const
+{
+	FTransform RandomFloorTransform;
+	while (!FloorMeshInstances->GetInstanceTransform(
+		FMath::RandRange(0, FloorMeshInstances->GetInstanceCount() - 1),
+		RandomFloorTransform, true))
+	{
+	}
+	
+	return RandomFloorTransform.GetLocation();
+}
+
+void APlayArea::SpawnFood() const
+{
+	FVector RandomFloorLocation = GetRandomFloorLocation();
+	FoodChildActorComponent->CreateChildActor();
+	AActor* ChildActor = FoodChildActorComponent->GetChildActor();
+	// Without this it crashes on player death, idk why
+	if (!IsValid(ChildActor))
+	{
+		return;
+	}
+	
+	RandomFloorLocation.Z += TileZOffset * -1;
+	ChildActor->SetActorTransform(FTransform(RandomFloorLocation));
+	AFood* FoodActor = Cast<AFood>(ChildActor);
+	if (FoodActor)
+	{
+		FoodActor->OnDestroyed.AddDynamic(this, &APlayArea::OnFoodDestroyed);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("PlayArea::SpawnFood() - FoodActor is null, ChildActorComponent prob has wrong class"));
 	}
 }

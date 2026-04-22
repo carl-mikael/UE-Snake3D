@@ -13,7 +13,7 @@ class SNAKE3D_API APlayArea : public AActor
 	
 	// --- Properties ---
 protected:
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(BlueprintReadWrite, VisibleAnywhere)
 	TObjectPtr<USceneComponent> SceneComponent;
 	
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category="Grid")
@@ -23,7 +23,7 @@ protected:
 	int TileSize;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Floor")
-	TObjectPtr<UInstancedStaticMeshComponent> FloorMesh;
+	TObjectPtr<UInstancedStaticMeshComponent> FloorMeshInstances;
 	
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category="Floor")
 	float TileScale;
@@ -32,10 +32,13 @@ protected:
 	float TileZOffset;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Wall")
-	TObjectPtr<UInstancedStaticMeshComponent> WallMesh;
+	TObjectPtr<UInstancedStaticMeshComponent> WallMeshInstances;
 	
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category="Wall")
 	float WallScale;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Food")
+	TObjectPtr<UChildActorComponent> FoodChildActorComponent;
 	
 	// --- Methods ---
 public:	
@@ -43,6 +46,9 @@ public:
 	APlayArea();
 
 protected:
+	UFUNCTION()
+	void OnFoodDestroyed(AActor* Food);
+	
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
@@ -52,5 +58,6 @@ public:
 	
 private:
 	void SpawnTiles() const;
-
+	FVector GetRandomFloorLocation() const;
+	void SpawnFood() const;
 };

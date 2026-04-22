@@ -18,5 +18,5 @@ public:
 	void SwitchToLevel(const TSoftObjectPtr<UWorld> LevelAsset, const bool bUseServerTravel = false) const;
 	
 	UFUNCTION(Server, Reliable)
-	void Server_TravelTo(const FString& URL) const;
+	void Server_TravelTo(const UWorld* LevelAsset) const;
 };
