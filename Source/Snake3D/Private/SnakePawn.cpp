@@ -5,9 +5,9 @@
 
 #include "Food.h"
 #include "SnakeBodyCell.h"
+#include "SnakeGameMode.h"
 #include "SnakeMovementComponent.h"
 #include "Camera/CameraComponent.h"
-#include "GameFramework/PlayerState.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Net/UnrealNetwork.h"
 
@@ -45,7 +45,7 @@ ASnakePawn::ASnakePawn()
 		
 	NrOfBodyCells = 2;
 	BodyCellOffset = 100.0f;
-	MovementSpeed = 200.0f;
+	MovementSpeed = 400.0f;
 }
 
 void ASnakePawn::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -68,6 +68,14 @@ void ASnakePawn::BeginPlay()
 	Super::BeginPlay();
 	
 	UE_LOG(LogTemp, Log, TEXT("SnakePawn::BeginPlay()!"));
+	
+	if (HasAuthority())
+	{
+		if (ASnakeGameMode* SnakeGameMode = Cast<ASnakeGameMode>(GetWorld()->GetAuthGameMode()))
+		{
+			SnakeGameMode->RegisterActor(this);
+		}
+	}
 	
 	HeadMesh->OnComponentHit.AddUniqueDynamic(this, &ASnakePawn::OnHit);
 
@@ -94,16 +102,16 @@ void ASnakePawn::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void ASnakePawn::Server_AddBodyCell_Implementation()
 {
 	NrOfBodyCells++;
-	APlayerState* PState = GetPlayerState();
-	if (IsValid(PState))
-	{
-		PState->SetScore(PState->GetScore() + 1);
-		UE_LOG(LogTemp, Log, TEXT("SnakePawn::Server_AddBodyCell_Implementation() - New Score: %f"), PState->GetScore());
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("SnakePawn::Server_AddBodyCell_Implementation() - PlayerSnakeState is invalid"));
-	}
+	// APlayerState* PState = GetPlayerState();
+	// if (IsValid(PState))
+	// {
+	// 	PState->SetScore(PState->GetScore() + 1);
+	// 	UE_LOG(LogTemp, Log, TEXT("SnakePawn::Server_AddBodyCell_Implementation() - New Score: %f"), PState->GetScore());
+	// }
+	// else
+	// {
+	// 	UE_LOG(LogTemp, Error, TEXT("SnakePawn::Server_AddBodyCell_Implementation() - PlayerSnakeState is invalid"));
+	// }
 	
 	Multicast_AddBodyCell();
 }
@@ -141,36 +149,39 @@ void ASnakePawn::AddBodyCell()
 void ASnakePawn::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
                        FVector NormalImpulse, const FHitResult& Hit)
 {
-	if (IsLocallyControlled())
+	if (!IsLocallyControlled())
 	{
-		UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit()"));
+		return;
+	}
 	
-		// Food Collision
-		AFood* FoodActor = Cast<AFood>(OtherActor);
-		if (IsValid(FoodActor))
-		{
-			UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit - Food!"));
-			this->DestroyActor(FoodActor);
-			Server_AddBodyCell();
-		}
-	
-		// HeadCollision
-		const AActor* SnakePawn = Cast<ASnakePawn>(OtherActor);
-		if (IsValid(SnakePawn))
-		{
-			UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit - Hit SnakePawnHead!"));
-			this->DestroyActor(this);
-		}
-	
-		// BodyCellCollision
-		const AActor* BodyCellActor = Cast<ASnakeBodyCell>(OtherActor);
-		if (IsValid(BodyCellActor))
-		{
-			const bool bIsSelf = (OtherActor->GetParentActor() == this);
-			const FString Msg = bIsSelf? TEXT("self") : TEXT("other");
-			UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit - Hit %s BodyCellActor!"), *Msg);
-			this->DestroyActor(this);
-		}
+	UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit()"));
+	Server_OnHit(OtherActor);
+
+	// Food Collision
+	AFood* FoodActor = Cast<AFood>(OtherActor);
+	if (IsValid(FoodActor))
+	{
+		UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit - Food!"));
+		this->DestroyActor(FoodActor);
+		Server_AddBodyCell();
+	}
+
+	// HeadCollision
+	const AActor* SnakePawn = Cast<ASnakePawn>(OtherActor);
+	if (IsValid(SnakePawn))
+	{
+		UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit - Hit SnakePawnHead!"));
+		this->DestroyActor(this);
+	}
+
+	// BodyCellCollision
+	const AActor* BodyCellActor = Cast<ASnakeBodyCell>(OtherActor);
+	if (IsValid(BodyCellActor))
+	{
+		const bool bIsSelf = (OtherActor->GetParentActor() == this);
+		const FString Msg = bIsSelf ? TEXT("self") : TEXT("other");
+		UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit - Hit %s BodyCellActor!"), *Msg);
+		this->DestroyActor(this);
 	}
 }
 
@@ -235,6 +246,11 @@ void ASnakePawn::MoveBodyCells(const float DeltaTime)
 		
 		CellRoot->AddLocalOffset(Move);
 	}
+}
+
+void ASnakePawn::Server_OnHit_Implementation(AActor* OtherActor)
+{
+	OnSneakHit.Broadcast(this, OtherActor);
 }
 
 // Called every frame

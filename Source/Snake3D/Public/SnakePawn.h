@@ -14,12 +14,18 @@ class USnakeMovementComponent;
 class USceneComponent;
 class UStaticMeshComponent;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSneakHit, ASnakePawn*, SnakePawn, AActor*, OtherActor);
+
 UCLASS()
 class SNAKE3D_API ASnakePawn : public APawn
 {
 	GENERATED_BODY()
 
 	// --- Properties ---
+public:
+	UPROPERTY()
+	FOnSneakHit OnSneakHit;
+	
 protected:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UStaticMeshComponent> HeadMesh;
@@ -89,4 +95,7 @@ private:
 	UFUNCTION(NetMulticast, Unreliable)
 	void Multicast_UpdateTransform(const FVector NewLocation, const float DeltaTime);
 	void MoveBodyCells(float DeltaTime);
+	
+	UFUNCTION(Server, Reliable)
+	void Server_OnHit(AActor* OtherActor);
 };
