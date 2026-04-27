@@ -8,12 +8,15 @@
 #include "SnakePlayerState.h"
 #include "GameFramework/PlayerState.h"
 
-void ASnakeGameMode::RegisterActor(AActor* Actor)
+void ASnakeGameMode::RegisterSnakePawn(ASnakePawn* SnakePawn)
 {
-	if (ASnakePawn* SnakePawn = Cast<ASnakePawn>(Actor))
+	if (!IsValid(SnakePawn))
 	{
-		SnakePawn->OnSneakHit.AddDynamic(this, &ASnakeGameMode::OnSneakHit);
+		UE_LOG(LogTemp, Error, TEXT("SnakeGameMode::RegisterSnakePawn() - SnakePawn is invalid"));
+		return;
 	}
+	
+	SnakePawn->OnSneakHit.AddDynamic(this, &ASnakeGameMode::OnSneakHit);
 }
 
 void ASnakeGameMode::BeginPlay()
@@ -32,6 +35,11 @@ void ASnakeGameMode::OnSneakHit(ASnakePawn* SnakePawn, AActor* OtherActor)
 			PState->SetScore(PState->GetScore() + 1);
 			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("SnakePawn::Server_AddBodyCell_Implementation() - Score updated!"));
 			UE_LOG(LogTemp, Log, TEXT("SnakePawn::Server_AddBodyCell_Implementation() - New Score: %f"), PState->GetScore());
+			
+			if (PState->GetScore() >= Points_Needed_To_Win)
+			{
+				OnWinnerDelegate.Broadcast(PState);
+			}
 		}
 		else
 		{

@@ -73,7 +73,7 @@ void ASnakePawn::BeginPlay()
 	{
 		if (ASnakeGameMode* SnakeGameMode = Cast<ASnakeGameMode>(GetWorld()->GetAuthGameMode()))
 		{
-			SnakeGameMode->RegisterActor(this);
+			SnakeGameMode->RegisterSnakePawn(this);
 		}
 	}
 	

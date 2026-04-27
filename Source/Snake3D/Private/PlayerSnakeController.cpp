@@ -5,10 +5,20 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputMappingContext.h"
+#include "SnakeGameMode.h"
+#include "GameFramework/PlayerState.h"
 
 void APlayerSnakeController::BeginPlay()
 {
     Super::BeginPlay();
+    
+    ASnakeGameMode* SnakeGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ASnakeGameMode>() : nullptr;
+    if (!IsValid(SnakeGameMode))
+    {
+        UE_LOG(LogTemp, Error, TEXT("PlayerSnakeController::BeginPlay() - SnakeGameMode invalid"));
+        return;
+    }
+    SnakeGameMode->OnWinnerDelegate.AddDynamic(this, &APlayerSnakeController::Client_OnPlayerStateWin);
     
     if (const ULocalPlayer* LocalPlayer = GetLocalPlayer())
     {
@@ -22,16 +32,19 @@ void APlayerSnakeController::BeginPlay()
             else
             {
                 UE_LOG(LogTemp, Error, TEXT("PlayerSnakeController::BeginPlay - Imc is null"))
+                return;
             }
         }
         else
         {
             UE_LOG(LogTemp, Error, TEXT("PlayerSnakeController::BeginPlay - InputSystem is null"))
+            return;
         }
     }
     else
     {
         UE_LOG(LogTemp, Error, TEXT("PlayerSnakeController::BeginPlay - LocalPlayer is null"))
+        return;
     }
 }
 
@@ -61,4 +74,15 @@ void APlayerSnakeController::HandleTurn(const FInputActionValue& Value)
     {
         UE_LOG(LogTemp, Error, TEXT("PlayerSnakeController::HandleTurn - Pawn is invalid"));
     }
+}
+
+void APlayerSnakeController::OnPlayerStateWin(APlayerState* WinningState)
+{
+    Client_OnPlayerStateWin(WinningState);
+}
+
+void APlayerSnakeController::Client_OnPlayerStateWin_Implementation(APlayerState* WinningState)
+{
+    GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("%s won."), WinningState->GetOwningController()==this? TEXT("You") : TEXT("Other player")));
+    OnPlayerWin(WinningState);
 }

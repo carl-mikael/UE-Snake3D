@@ -6,6 +6,8 @@
 #include "GameFramework/GameMode.h"
 #include "SnakeGameMode.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPlayerStateWinnerDelegate, APlayerState*, WinningState);
+
 class ASnakePawn;
 /**
  * 
@@ -15,8 +17,13 @@ class SNAKE3D_API ASnakeGameMode : public AGameMode
 {
 	GENERATED_BODY()
 	
+protected:
+	constexpr static int Points_Needed_To_Win = 1;
+	
 public:
-	void RegisterActor(AActor* Actor);
+	UPROPERTY()
+	FPlayerStateWinnerDelegate OnWinnerDelegate;
+	void RegisterSnakePawn(ASnakePawn* SnakePawn);
 	
 protected:
 	virtual void BeginPlay() override;

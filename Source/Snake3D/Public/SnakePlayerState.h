@@ -6,7 +6,7 @@
 #include "GameFramework/PlayerState.h"
 #include "SnakePlayerState.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FScoreUpdated);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FScoreUpdated, int, NewScore);
 
 /**
  * 

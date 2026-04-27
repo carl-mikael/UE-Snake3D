@@ -27,5 +27,16 @@ protected:
 protected:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
+	
+	UFUNCTION()
 	void HandleTurn(const FInputActionValue& Value);
+	
+	UFUNCTION()
+	void OnPlayerStateWin(APlayerState* WinningState);
+	
+	UFUNCTION(Client, Reliable)
+	void Client_OnPlayerStateWin(APlayerState* WinnerState);
+	
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnPlayerWin(APlayerState* WinnerState);
 };
