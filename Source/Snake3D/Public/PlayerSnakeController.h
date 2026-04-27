@@ -26,6 +26,7 @@ protected:
 	// --- Methods ---
 protected:
 	virtual void BeginPlay() override;
+	virtual void OnPossess(APawn* InPawn) override;
 	virtual void SetupInputComponent() override;
 	
 	UFUNCTION()

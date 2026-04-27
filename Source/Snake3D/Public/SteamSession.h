@@ -30,6 +30,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void Join(const bool bLan) const;
 	
+	UFUNCTION(BlueprintCallable)
+	void DestroySession() const;
+	
 private:
 	void OnCreateSessionComplete(FName SessionName, bool bSuccess);
 	void OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type JoinResult);

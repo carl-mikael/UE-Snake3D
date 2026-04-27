@@ -19,6 +19,12 @@ void APlayerSnakeController::BeginPlay()
         return;
     }
     SnakeGameMode->OnWinnerDelegate.AddDynamic(this, &APlayerSnakeController::Client_OnPlayerStateWin);
+}
+
+void APlayerSnakeController::OnPossess(APawn* InPawn)
+{
+    Super::OnPossess(InPawn);
+    
     
     if (const ULocalPlayer* LocalPlayer = GetLocalPlayer())
     {
@@ -46,6 +52,8 @@ void APlayerSnakeController::BeginPlay()
         UE_LOG(LogTemp, Error, TEXT("PlayerSnakeController::BeginPlay - LocalPlayer is null"))
         return;
     }
+    
+    GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Green, TEXT("PlayerSnakeController::OnPossess - Input mapping context added without problem"));
 }
 
 void APlayerSnakeController::SetupInputComponent()
@@ -55,6 +63,10 @@ void APlayerSnakeController::SetupInputComponent()
     if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent))
     {
         EnhancedInputComponent->BindAction(TurnAction, ETriggerEvent::Triggered, this, &APlayerSnakeController::HandleTurn);
+    }
+    else
+    {
+        GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Red, TEXT("PlayerSnakeController::SetupInputComponent - EnhancedInputComponent is invalid"));
     }
 }
 

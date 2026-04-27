@@ -18,7 +18,8 @@ class SNAKE3D_API ASnakeGameMode : public AGameMode
 	GENERATED_BODY()
 	
 protected:
-	constexpr static int Points_Needed_To_Win = 1;
+	constexpr static int Points_Needed_To_Win = 10;
+	bool bIsGameWon = false;
 	
 public:
 	UPROPERTY()

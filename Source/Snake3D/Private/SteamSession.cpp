@@ -2,7 +2,6 @@
 
 
 #include "SteamSession.h"
-
 #include "Kismet/GameplayStatics.h"
 
 void USteamSession::Initialize(FSubsystemCollectionBase& Collection)
@@ -125,6 +124,11 @@ void USteamSession::Join(const bool bLan) const
 	
 	SearchSettings->bIsLanQuery = bLan;
 	SessionInterface->FindSessions(0, SearchSettings.ToSharedRef());
+}
+
+void USteamSession::DestroySession() const
+{
+	SessionInterface->DestroySession(DefaultSessionName);
 }
 
 void USteamSession::OnCreateSessionComplete(FName SessionName, bool bSuccess)

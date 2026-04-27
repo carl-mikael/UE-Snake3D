@@ -4,8 +4,10 @@
 #include "SnakeGameMode.h"
 
 #include "Food.h"
+#include "SnakeBodyCell.h"
 #include "SnakePawn.h"
 #include "SnakePlayerState.h"
+#include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
 
 void ASnakeGameMode::RegisterSnakePawn(ASnakePawn* SnakePawn)
@@ -27,7 +29,12 @@ void ASnakeGameMode::BeginPlay()
 
 void ASnakeGameMode::OnSneakHit(ASnakePawn* SnakePawn, AActor* OtherActor)
 {
-	if (IsValid(SnakePawn) && OtherActor->IsA(AFood::StaticClass()))
+	if (bIsGameWon || !IsValid(SnakePawn))
+	{
+		return;
+	}
+	
+	if (OtherActor->IsA(AFood::StaticClass()))
 	{
 		ASnakePlayerState* PState = Cast<ASnakePlayerState>(SnakePawn->GetPlayerState());
 		if (IsValid(PState))
@@ -39,12 +46,28 @@ void ASnakeGameMode::OnSneakHit(ASnakePawn* SnakePawn, AActor* OtherActor)
 			if (PState->GetScore() >= Points_Needed_To_Win)
 			{
 				OnWinnerDelegate.Broadcast(PState);
+				if (PState->GetScore() >= Points_Needed_To_Win)
+				{
+					bIsGameWon = true;
+				}
 			}
 		}
 		else
 		{
 			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("SnakePawn::Server_AddBodyCell_Implementation() - PlayerSnakeState is invalid"));
 			UE_LOG(LogTemp, Error, TEXT("SnakePawn::Server_AddBodyCell_Implementation() - PlayerSnakeState is invalid"));
+		}
+	}
+	else if (OtherActor->IsA(ASnakeBodyCell::StaticClass()))
+	{
+		for (const auto PlayerState : this->GameState->PlayerArray)
+		{
+			// The player state that doesn't own the pawn that collided wins.				WARNING: works for 2 players only!
+			if (PlayerState->GetPawn() != SnakePawn || NumPlayers == 1)
+			{
+				bIsGameWon = true;
+				OnWinnerDelegate.Broadcast(PlayerState);
+			}
 		}
 	}
 }
