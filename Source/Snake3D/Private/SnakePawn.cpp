@@ -154,7 +154,6 @@ void ASnakePawn::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimit
 		return;
 	}
 	
-	UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit()"));
 	Server_OnHit(OtherActor);
 
 	// Food Collision

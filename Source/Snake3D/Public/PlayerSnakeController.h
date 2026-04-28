@@ -29,6 +29,9 @@ protected:
 	virtual void OnPossess(APawn* InPawn) override;
 	virtual void SetupInputComponent() override;
 	
+	UFUNCTION(Client, Reliable)
+	void Client_OnPossess(APawn* InPawn);
+	
 	UFUNCTION()
 	void HandleTurn(const FInputActionValue& Value);
 	

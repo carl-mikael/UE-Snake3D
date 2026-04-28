@@ -25,35 +25,7 @@ void APlayerSnakeController::OnPossess(APawn* InPawn)
 {
     Super::OnPossess(InPawn);
     
-    
-    if (const ULocalPlayer* LocalPlayer = GetLocalPlayer())
-    {
-        if (UEnhancedInputLocalPlayerSubsystem* InputSystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
-        {
-            if (!InputMappingContext.IsNull())
-            {
-                constexpr int Priority = 0;
-                InputSystem->AddMappingContext(InputMappingContext.LoadSynchronous(), Priority);
-            }
-            else
-            {
-                UE_LOG(LogTemp, Error, TEXT("PlayerSnakeController::BeginPlay - Imc is null"))
-                return;
-            }
-        }
-        else
-        {
-            UE_LOG(LogTemp, Error, TEXT("PlayerSnakeController::BeginPlay - InputSystem is null"))
-            return;
-        }
-    }
-    else
-    {
-        UE_LOG(LogTemp, Error, TEXT("PlayerSnakeController::BeginPlay - LocalPlayer is null"))
-        return;
-    }
-    
-    GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Green, TEXT("PlayerSnakeController::OnPossess - Input mapping context added without problem"));
+    Client_OnPossess(InPawn);
 }
 
 void APlayerSnakeController::SetupInputComponent()
@@ -68,6 +40,40 @@ void APlayerSnakeController::SetupInputComponent()
     {
         GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Red, TEXT("PlayerSnakeController::SetupInputComponent - EnhancedInputComponent is invalid"));
     }
+}
+
+void APlayerSnakeController::Client_OnPossess_Implementation(APawn* InPawn)
+{
+    GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Yellow, TEXT("PlayerSnakeController::Client_OnPossess - Trying to add input mapping"));
+    
+    if (const ULocalPlayer* LocalPlayer = GetLocalPlayer())
+    {
+        if (UEnhancedInputLocalPlayerSubsystem* InputSystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+        {
+            if (!InputMappingContext.IsNull())
+            {
+                constexpr int Priority = 0;
+                InputSystem->AddMappingContext(InputMappingContext.LoadSynchronous(), Priority);
+            }
+            else
+            {
+                UE_LOG(LogTemp, Error, TEXT("PlayerSnakeController::Client_OnPossess - Imc is null"))
+                return;
+            }
+        }
+        else
+        {
+            UE_LOG(LogTemp, Error, TEXT("PlayerSnakeController::Client_OnPossess - InputSystem is null"))
+            return;
+        }
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("PlayerSnakeController::Client_OnPossess - LocalPlayer is null"))
+        return;
+    }
+    
+    GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Green, TEXT("PlayerSnakeController::Client_OnPossess - Input mapping context added without problem"));
 }
 
 // ReSharper disable once CppMemberFunctionMayBeConst
