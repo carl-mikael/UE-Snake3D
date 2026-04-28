@@ -12,13 +12,18 @@ void APlayerSnakeController::BeginPlay()
 {
     Super::BeginPlay();
     
-    ASnakeGameMode* SnakeGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ASnakeGameMode>() : nullptr;
-    if (!IsValid(SnakeGameMode))
+    if (HasAuthority())
     {
-        UE_LOG(LogTemp, Error, TEXT("PlayerSnakeController::BeginPlay() - SnakeGameMode invalid"));
-        return;
+        ASnakeGameMode* SnakeGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ASnakeGameMode>() : nullptr;
+        if (!IsValid(SnakeGameMode))
+        {
+            UE_LOG(LogTemp, Error, TEXT("PlayerSnakeController::BeginPlay() - SnakeGameMode invalid"));
+            return;
+        }
+        
+        SnakeGameMode->OnWinnerDelegate.AddDynamic(this, &APlayerSnakeController::Client_OnPlayerStateWin);
+        UE_LOG(LogTemp, Log, TEXT("PlayerSnakeController::BeginPlay() - Subscribed to OnWinnerDelegate"));
     }
-    SnakeGameMode->OnWinnerDelegate.AddDynamic(this, &APlayerSnakeController::Client_OnPlayerStateWin);
 }
 
 void APlayerSnakeController::OnPossess(APawn* InPawn)

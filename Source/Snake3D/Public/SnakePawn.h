@@ -6,6 +6,7 @@
 #include "GameFramework/Pawn.h"
 #include "SnakePawn.generated.h"
 
+enum class ESnakeCollision;
 class UClass;
 class UChildActorComponent;
 class USpringArmComponent;
@@ -14,7 +15,7 @@ class USnakeMovementComponent;
 class USceneComponent;
 class UStaticMeshComponent;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSneakHit, ASnakePawn*, SnakePawn, AActor*, OtherActor);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSnakeHit, ASnakePawn*, SnakePawn, ESnakeCollision, CollisionType);
 
 UCLASS()
 class SNAKE3D_API ASnakePawn : public APawn
@@ -24,7 +25,7 @@ class SNAKE3D_API ASnakePawn : public APawn
 	// --- Properties ---
 public:
 	UPROPERTY()
-	FOnSneakHit OnSneakHit;
+	FOnSnakeHit OnSnakeHit;
 	
 protected:
 	UPROPERTY(VisibleAnywhere)
@@ -74,6 +75,12 @@ protected:
 	
 private:
 	UFUNCTION(Server, Reliable)
+	void Server_DisableTick();
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_DisableTick();
+	
+	UFUNCTION(Server, Reliable)
 	void Server_AddBodyCell();
 	
 	UFUNCTION(NetMulticast, Reliable)
@@ -94,8 +101,9 @@ private:
 	
 	UFUNCTION(NetMulticast, Unreliable)
 	void Multicast_UpdateTransform(const FVector NewLocation, const float DeltaTime);
+	
 	void MoveBodyCells(float DeltaTime);
 	
 	UFUNCTION(Server, Reliable)
-	void Server_OnHit(AActor* OtherActor);
+	void Server_OnHit(ESnakeCollision CollisionType);
 };

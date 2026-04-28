@@ -8,6 +8,14 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPlayerStateWinnerDelegate, APlayerState*, WinningState);
 
+UENUM()
+enum class ESnakeCollision
+{
+	ASnakeHead,
+	ASnakeBodyCell,
+	AFood
+};
+
 class ASnakePawn;
 /**
  * 
@@ -24,12 +32,14 @@ protected:
 public:
 	UPROPERTY()
 	FPlayerStateWinnerDelegate OnWinnerDelegate;
+	
 	void RegisterSnakePawn(ASnakePawn* SnakePawn);
+	void UnRegisterSnakePawn(ASnakePawn* SnakePawn);
 	
 protected:
 	virtual void BeginPlay() override;
 	
 private:
 	UFUNCTION()
-	void OnSneakHit(ASnakePawn* SnakePawn, AActor* OtherActor);
+	void OnSnakeHit(ASnakePawn* SnakePawn, ESnakeCollision CollisionType);
 };

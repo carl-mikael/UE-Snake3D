@@ -97,21 +97,26 @@ void ASnakePawn::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 	
 	HeadMesh->OnComponentHit.RemoveDynamic(this, &ASnakePawn::OnHit);
+	
+	if (HasAuthority())
+	{
+		GetWorld()->GetAuthGameMode<ASnakeGameMode>()->UnRegisterSnakePawn(this);
+	}
+}
+
+void ASnakePawn::Multicast_DisableTick_Implementation()
+{
+	this->SetActorTickEnabled(false);
+}
+
+void ASnakePawn::Server_DisableTick_Implementation()
+{
+	Multicast_DisableTick();
 }
 
 void ASnakePawn::Server_AddBodyCell_Implementation()
 {
 	NrOfBodyCells++;
-	// APlayerState* PState = GetPlayerState();
-	// if (IsValid(PState))
-	// {
-	// 	PState->SetScore(PState->GetScore() + 1);
-	// 	UE_LOG(LogTemp, Log, TEXT("SnakePawn::Server_AddBodyCell_Implementation() - New Score: %f"), PState->GetScore());
-	// }
-	// else
-	// {
-	// 	UE_LOG(LogTemp, Error, TEXT("SnakePawn::Server_AddBodyCell_Implementation() - PlayerSnakeState is invalid"));
-	// }
 	
 	Multicast_AddBodyCell();
 }
@@ -154,15 +159,15 @@ void ASnakePawn::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimit
 		return;
 	}
 	
-	Server_OnHit(OtherActor);
-
 	// Food Collision
 	AFood* FoodActor = Cast<AFood>(OtherActor);
 	if (IsValid(FoodActor))
 	{
 		UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit - Food!"));
+		Server_OnHit(ESnakeCollision::AFood);
 		this->DestroyActor(FoodActor);
 		Server_AddBodyCell();
+		return;
 	}
 
 	// HeadCollision
@@ -170,7 +175,14 @@ void ASnakePawn::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimit
 	if (IsValid(SnakePawn))
 	{
 		UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit - Hit SnakePawnHead!"));
-		this->DestroyActor(this);
+		Server_OnHit(ESnakeCollision::ASnakeHead);
+		if (IsActorTickEnabled())
+		{
+			HeadMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Ignore);
+			this->SetActorTickEnabled(false);
+			Server_DisableTick();
+		}
+		return;
 	}
 
 	// BodyCellCollision
@@ -180,7 +192,14 @@ void ASnakePawn::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimit
 		const bool bIsSelf = (OtherActor->GetParentActor() == this);
 		const FString Msg = bIsSelf ? TEXT("self") : TEXT("other");
 		UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit - Hit %s BodyCellActor!"), *Msg);
-		this->DestroyActor(this);
+		Server_OnHit(ESnakeCollision::ASnakeBodyCell);
+		if (IsActorTickEnabled())
+		{
+			HeadMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Ignore);
+			this->SetActorTickEnabled(false);
+			Server_DisableTick();
+		}
+		return;
 	}
 }
 
@@ -247,9 +266,9 @@ void ASnakePawn::MoveBodyCells(const float DeltaTime)
 	}
 }
 
-void ASnakePawn::Server_OnHit_Implementation(AActor* OtherActor)
+void ASnakePawn::Server_OnHit_Implementation(ESnakeCollision CollisionType)
 {
-	OnSneakHit.Broadcast(this, OtherActor);
+	OnSnakeHit.Broadcast(this, CollisionType);
 }
 
 // Called every frame

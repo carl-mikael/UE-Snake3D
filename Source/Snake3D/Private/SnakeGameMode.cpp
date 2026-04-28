@@ -18,7 +18,18 @@ void ASnakeGameMode::RegisterSnakePawn(ASnakePawn* SnakePawn)
 		return;
 	}
 	
-	SnakePawn->OnSneakHit.AddDynamic(this, &ASnakeGameMode::OnSneakHit);
+	SnakePawn->OnSnakeHit.AddDynamic(this, &ASnakeGameMode::OnSnakeHit);
+}
+
+void ASnakeGameMode::UnRegisterSnakePawn(ASnakePawn* SnakePawn)
+{
+	if (!IsValid(SnakePawn))
+	{
+		UE_LOG(LogTemp, Error, TEXT("SnakeGameMode::UnRegisterSnakePawn() - SnakePawn is invalid"));
+		return;
+	}
+	
+	SnakePawn->OnSnakeHit.RemoveDynamic(this, &ASnakeGameMode::OnSnakeHit);
 }
 
 void ASnakeGameMode::BeginPlay()
@@ -26,16 +37,41 @@ void ASnakeGameMode::BeginPlay()
 	Super::BeginPlay();
 	
 }
-
-void ASnakeGameMode::OnSneakHit(ASnakePawn* SnakePawn, AActor* OtherActor)
+// WARNING: works for 2 players only!
+// Other player wins if one crashes
+// If both crash into each other, Server wins
+void ASnakeGameMode::OnSnakeHit(ASnakePawn* SnakePawn, ESnakeCollision CollisionType)
 {
+	UE_LOG(LogTemp, Log, TEXT("SnakeGameMode::OnSnakeHit() - Hit something!"));
+	
 	if (bIsGameWon || !IsValid(SnakePawn))
 	{
+		if (!IsValid(SnakePawn))
+		{
+			UE_LOG(LogTemp, Error, TEXT("SnakeGameMode::OnSnakeHit() - Invalid SnakePawn"));
+		}
+		
 		return;
 	}
 	
-	if (OtherActor->IsA(AFood::StaticClass()))
+	switch (CollisionType)
 	{
+	case ESnakeCollision::ASnakeHead:
+		bIsGameWon = true;
+		OnWinnerDelegate.Broadcast(this->GameState->PlayerArray[0]);
+		break;
+	case ESnakeCollision::ASnakeBodyCell:
+		for (const auto PlayerState : this->GameState->PlayerArray)
+		{
+			// The player state that doesn't own the pawn that collided wins.
+			if (PlayerState->GetPawn() != SnakePawn || NumPlayers == 1)
+			{
+				bIsGameWon = true;
+				OnWinnerDelegate.Broadcast(PlayerState);
+			}
+		}
+		break;
+	case ESnakeCollision::AFood:
 		ASnakePlayerState* PState = Cast<ASnakePlayerState>(SnakePawn->GetPlayerState());
 		if (IsValid(PState))
 		{
@@ -57,17 +93,6 @@ void ASnakeGameMode::OnSneakHit(ASnakePawn* SnakePawn, AActor* OtherActor)
 			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("SnakePawn::Server_AddBodyCell_Implementation() - PlayerSnakeState is invalid"));
 			UE_LOG(LogTemp, Error, TEXT("SnakePawn::Server_AddBodyCell_Implementation() - PlayerSnakeState is invalid"));
 		}
-	}
-	else if (OtherActor->IsA(ASnakeBodyCell::StaticClass()))
-	{
-		for (const auto PlayerState : this->GameState->PlayerArray)
-		{
-			// The player state that doesn't own the pawn that collided wins.				WARNING: works for 2 players only!
-			if (PlayerState->GetPawn() != SnakePawn || NumPlayers == 1)
-			{
-				bIsGameWon = true;
-				OnWinnerDelegate.Broadcast(PlayerState);
-			}
-		}
+		break;
 	}
 }
