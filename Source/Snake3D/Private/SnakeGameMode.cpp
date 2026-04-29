@@ -36,6 +36,7 @@ void ASnakeGameMode::UnRegisterSnakePawn(ASnakePawn* SnakePawn)
 void ASnakeGameMode::InitiateNextStage()
 {
 	int NewStage = GetGameState<ASnakeGameState>()->NextStage();
+	constexpr float Movement_Speed_Multiplier_Per_Stage = 1.25f;
 	
 	// Reset Scores
 	for (const auto PlayerState : this->GameState->PlayerArray)
@@ -47,6 +48,13 @@ void ASnakeGameMode::InitiateNextStage()
 	{
 		Player->GetPawn()->Destroy();
 		RestartPlayer(Player->GetOwningController());
+		ASnakePawn* SnakePawn = Cast<ASnakePawn>(Player->GetPawn());
+		if (SnakePawn == nullptr)
+		{
+			UE_LOG(LogTemp, Error, TEXT("ASnakeGameMode::InitiateNextStage() - SnakePawn is nullptr"));
+		}
+
+		SnakePawn->Multicast_SetMovementSpeed(SnakePawn->GetMovementSpeed() * Movement_Speed_Multiplier_Per_Stage);
 	}
 }
 

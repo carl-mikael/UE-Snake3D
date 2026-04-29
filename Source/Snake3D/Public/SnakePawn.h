@@ -52,9 +52,6 @@ protected:
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Body")
 	TArray<TObjectPtr<UChildActorComponent>> ChildActorComponents;
 	
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Body")
-	float BodyCellOffset;
-	
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Movement")
 	float MovementSpeed;
 
@@ -67,6 +64,9 @@ public:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 	virtual UPawnMovementComponent* GetMovementComponent() const override;
 	float GetMovementSpeed() const;
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_SetMovementSpeed(float NewMovementSpeed);
 
 protected:
 	virtual void OnConstruction(const FTransform& Transform) override;
@@ -74,6 +74,11 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
 private:
+	float GetBodyCellOffset() const
+	{
+		return GetMovementSpeed() / 4.f;
+	}
+	
 	UFUNCTION(Server, Reliable)
 	void Server_DisableTick();
 	

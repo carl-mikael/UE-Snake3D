@@ -44,7 +44,6 @@ ASnakePawn::ASnakePawn()
 	BodyCellActorClass = ASnakeBodyCell::StaticClass();
 		
 	NrOfBodyCells = 2;
-	BodyCellOffset = 100.0f;
 	MovementSpeed = 400.0f;
 }
 
@@ -146,7 +145,7 @@ void ASnakePawn::AddBodyCell()
 	
 	BodyCellActors.Add(ChildActorComponent->GetChildActor());
 	
-	const FVector Offset = LastBodyCell->GetActorForwardVector() * -BodyCellOffset;
+	const FVector Offset = LastBodyCell->GetActorForwardVector() * -GetBodyCellOffset();
 	const FVector BodyCellWorldLocation = LastBodyCell->GetRootComponent()->GetComponentLocation() + Offset;
 	ChildActor->GetRootComponent()->SetWorldLocation(BodyCellWorldLocation);
 }
@@ -254,12 +253,12 @@ void ASnakePawn::MoveBodyCells(const float DeltaTime)
 		const FRotator RotToPrevCell = ToPrevCell.Rotation();
 		USceneComponent* CellRoot = BodyCell->GetRootComponent();
 		CellRoot->SetWorldRotation(RotToPrevCell);
-		FVector Move = FVector(MovementSpeed * DeltaTime, 0.0f, 0.0f);
+		FVector Move = FVector(GetMovementSpeed() * DeltaTime, 0.0f, 0.0f);
 		FVector NewLocation = BodyCell->GetActorLocation() + Move;
 		const float DistanceSqr = (PrevCellLocation - NewLocation).Length();
-		if (DistanceSqr < BodyCellOffset)
+		if (DistanceSqr < GetBodyCellOffset())
 		{
-			Move.X -= BodyCellOffset - DistanceSqr;
+			Move.X -= GetBodyCellOffset() - DistanceSqr;
 		}
 		
 		CellRoot->AddLocalOffset(Move);
@@ -300,3 +299,7 @@ float ASnakePawn::GetMovementSpeed() const
 	return MovementSpeed;
 }
 
+void ASnakePawn::Multicast_SetMovementSpeed_Implementation(const float NewMovementSpeed)
+{
+	MovementSpeed = NewMovementSpeed;
+}
