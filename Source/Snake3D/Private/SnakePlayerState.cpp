@@ -2,6 +2,14 @@
 
 
 #include "SnakePlayerState.h"
+#include "Net/UnrealNetwork.h"
+
+void ASnakePlayerState::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	
+	DOREPLIFETIME(ASnakePlayerState, Wins);
+}
 
 void ASnakePlayerState::SetScore(const float NewScore)
 {

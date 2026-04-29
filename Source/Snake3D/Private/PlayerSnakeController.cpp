@@ -21,8 +21,9 @@ void APlayerSnakeController::BeginPlay()
             return;
         }
         
-        SnakeGameMode->OnWinnerDelegate.AddDynamic(this, &APlayerSnakeController::Client_OnPlayerStateWin);
-        UE_LOG(LogTemp, Log, TEXT("PlayerSnakeController::BeginPlay() - Subscribed to OnWinnerDelegate"));
+        SnakeGameMode->OnStageWon.AddDynamic(this, &APlayerSnakeController::Client_OnPlayerStageWin);
+        SnakeGameMode->OnGameWon.AddDynamic(this, &APlayerSnakeController::Client_OnPlayerGameWin);
+        UE_LOG(LogTemp, Log, TEXT("PlayerSnakeController::BeginPlay() - Subscribed to OnWinDelegates"));
     }
 }
 
@@ -99,8 +100,13 @@ void APlayerSnakeController::HandleTurn(const FInputActionValue& Value)
     }
 }
 
-void APlayerSnakeController::Client_OnPlayerStateWin_Implementation(APlayerState* WinningState, const float Score)
+void APlayerSnakeController::Client_OnPlayerGameWin_Implementation(APlayerState* WinnerState)
+{
+    OnPlayerGameWin(WinnerState);
+}
+
+void APlayerSnakeController::Client_OnPlayerStageWin_Implementation(APlayerState* WinningState, const float Score)
 {
     GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("%s won."), WinningState->GetOwningController()==this? TEXT("You") : TEXT("Other player")));
-    OnPlayerWin(WinningState, Score);
+    OnPlayerStageWin(WinningState, Score);
 }

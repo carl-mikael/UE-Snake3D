@@ -20,7 +20,28 @@ public:
 	UPROPERTY(BlueprintAssignable, Category="Events")
 	FScoreUpdated OnScoreUpdated;
 	
+private:
+	UPROPERTY(Replicated)
+	int Wins = 0;
+	
 public:
 	// ReSharper disable once CppHidingFunction
-	void SetScore(const float NewScore);
+	virtual void SetScore(const float NewScore);
+	
+	// Call only from Server
+	UFUNCTION(BlueprintCallable)
+	int AddWin()
+	{
+		Wins++;
+		return Wins;
+	};
+	
+	UFUNCTION(BlueprintCallable)
+	int GetWins() const
+	{
+		return Wins;
+	};
+	
+protected:
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 };

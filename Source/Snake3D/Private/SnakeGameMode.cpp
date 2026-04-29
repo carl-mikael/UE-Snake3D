@@ -3,12 +3,13 @@
 
 #include "SnakeGameMode.h"
 
-#include "Food.h"
-#include "SnakeBodyCell.h"
+#include "SnakeGameState.h"
 #include "SnakePawn.h"
 #include "SnakePlayerState.h"
 #include "GameFramework/GameStateBase.h"
+#include "GameFramework/PlayerStart.h"
 #include "GameFramework/PlayerState.h"
+#include "Kismet/GameplayStatics.h"
 
 void ASnakeGameMode::RegisterSnakePawn(ASnakePawn* SnakePawn)
 {
@@ -32,19 +33,46 @@ void ASnakeGameMode::UnRegisterSnakePawn(ASnakePawn* SnakePawn)
 	SnakePawn->OnSnakeHit.RemoveDynamic(this, &ASnakeGameMode::OnSnakeHit);
 }
 
+void ASnakeGameMode::InitiateNextStage() const
+{
+	int NewStage = GetGameState<ASnakeGameState>()->NextStage();
+	
+	// Reset Scores
+	for (const auto PlayerState : this->GameState->PlayerArray)
+	{
+		PlayerState->SetScore(0);
+	}
+}
+
 void ASnakeGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 	
 }
+
+AActor* ASnakeGameMode::ChoosePlayerStart_Implementation(AController* Player)
+{
+	const bool bIsHost = Player->IsLocalController();
+		
+	TArray<AActor*> PlayerStarts;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerStart::StaticClass(), PlayerStarts);
+	
+	AActor** PlayerStart = PlayerStarts.FindByPredicate([&bIsHost](AActor* Start)
+	{
+		return Cast<APlayerStart>(Start)->PlayerStartTag == (bIsHost? TEXT("P1") : TEXT("P2"));
+	});
+	
+	return *PlayerStart;
+}
+
 // WARNING: works for 2 players only!
-// Other player wins if one crashes
-// If both crash into each other, Server wins
+// Other player wins if one crashes.
+// If both players crash into each other, Server wins.
 void ASnakeGameMode::OnSnakeHit(ASnakePawn* SnakePawn, ESnakeCollision CollisionType)
 {
 	UE_LOG(LogTemp, Log, TEXT("SnakeGameMode::OnSnakeHit() - Hit something!"));
 	
-	if (bIsGameWon || !IsValid(SnakePawn))
+	if (GetGameState<ASnakeGameState>()->IsStageWon() || !IsValid(SnakePawn))
 	{
 		if (!IsValid(SnakePawn))
 		{
@@ -57,11 +85,7 @@ void ASnakeGameMode::OnSnakeHit(ASnakePawn* SnakePawn, ESnakeCollision Collision
 	switch (CollisionType)
 	{
 	case ESnakeCollision::ASnakeHead:
-		bIsGameWon = true;
-		{
-			APlayerState* WinningState = this->GameState->PlayerArray[0];
-			OnWinnerDelegate.Broadcast(WinningState, WinningState->GetScore());
-		}
+		WinStage(Cast<ASnakePlayerState>(this->GameState->PlayerArray[0]));
 		break;
 	case ESnakeCollision::ASnakeBodyCell:
 		for (const auto PlayerState : this->GameState->PlayerArray)
@@ -69,9 +93,7 @@ void ASnakeGameMode::OnSnakeHit(ASnakePawn* SnakePawn, ESnakeCollision Collision
 			// The player state that doesn't own the pawn that collided wins.
 			if (PlayerState->GetPawn() != SnakePawn || NumPlayers == 1)
 			{
-				bIsGameWon = true;
-				APlayerState* WinningState = PlayerState; 
-				OnWinnerDelegate.Broadcast(WinningState, WinningState->GetScore());
+				WinStage(Cast<ASnakePlayerState>(PlayerState));
 			}
 		}
 		break;
@@ -83,11 +105,9 @@ void ASnakeGameMode::OnSnakeHit(ASnakePawn* SnakePawn, ESnakeCollision Collision
 			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("SnakePawn::Server_AddBodyCell_Implementation() - Score updated!"));
 			UE_LOG(LogTemp, Log, TEXT("SnakePawn::Server_AddBodyCell_Implementation() - New Score: %f"), PState->GetScore());
 			
-			if (PState->GetScore() >= Points_Needed_To_Win)
+			if (PState->GetScore() >= Points_Needed_To_Win_Stage)
 			{
-				bIsGameWon = true;
-				APlayerState* WinningState = PState; 
-				OnWinnerDelegate.Broadcast(WinningState, WinningState->GetScore());
+				WinStage(PState);
 			}
 		}
 		else
@@ -96,5 +116,21 @@ void ASnakeGameMode::OnSnakeHit(ASnakePawn* SnakePawn, ESnakeCollision Collision
 			UE_LOG(LogTemp, Error, TEXT("SnakePawn::Server_AddBodyCell_Implementation() - PlayerSnakeState is invalid"));
 		}
 		break;
+	}
+}
+
+void ASnakeGameMode::WinStage(ASnakePlayerState* WinningPlayerState) const
+{
+	GetGameState<ASnakeGameState>()->SetStageWon(true);
+	
+	// Won Game
+	if (WinningPlayerState->AddWin() >= Stages_Needed_To_Win_Game)
+	{
+		OnGameWon.Broadcast(WinningPlayerState);
+	}
+	// Won Stage
+	else
+	{
+		OnStageWon.Broadcast(WinningPlayerState, WinningPlayerState->GetScore());
 	}
 }
