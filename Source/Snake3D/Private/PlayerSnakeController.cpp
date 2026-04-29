@@ -27,6 +27,25 @@ void APlayerSnakeController::BeginPlay()
     }
 }
 
+void APlayerSnakeController::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+    Super::EndPlay(EndPlayReason);
+    
+    if (HasAuthority())
+    {
+        ASnakeGameMode* SnakeGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ASnakeGameMode>() : nullptr;
+        if (!IsValid(SnakeGameMode))
+        {
+            UE_LOG(LogTemp, Error, TEXT("PlayerSnakeController::EndPlay() - SnakeGameMode invalid"));
+            return;
+        }
+        
+        SnakeGameMode->OnStageWon.RemoveDynamic(this, &APlayerSnakeController::Client_OnPlayerStageWin);
+        SnakeGameMode->OnGameWon.RemoveDynamic(this, &APlayerSnakeController::Client_OnPlayerGameWin);
+        UE_LOG(LogTemp, Log, TEXT("PlayerSnakeController::EndPlay() - Unsubscribed to OnWinDelegates"));
+    }
+}
+
 void APlayerSnakeController::OnPossess(APawn* InPawn)
 {
     Super::OnPossess(InPawn);
