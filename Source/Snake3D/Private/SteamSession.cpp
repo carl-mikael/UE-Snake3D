@@ -34,6 +34,7 @@ void USteamSession::Initialize(FSubsystemCollectionBase& Collection)
 	
 	SessionSettings = FOnlineSessionSettings();
 	SessionSettings.bIsDedicated = false;
+	SessionSettings.bIsLANMatch = false;
 	SessionSettings.bAllowJoinViaPresenceFriendsOnly = false;
 	SessionSettings.bAntiCheatProtected = false;
 	SessionSettings.bUsesStats = false;
@@ -47,6 +48,9 @@ void USteamSession::Initialize(FSubsystemCollectionBase& Collection)
 	SessionSettings.bAllowInvites = true;
 	
 	SearchSettings = MakeShared<FOnlineSessionSearch>();
+	SearchSettings->TimeoutInSeconds = 8.f;
+	SearchSettings->bIsLanQuery = false;
+	SearchSettings->MaxSearchResults = 100;
 	
 	DefaultSessionName = TEXT("DefaultSession");
 	
@@ -96,6 +100,7 @@ void USteamSession::Host(const bool bLan, const TSoftObjectPtr<UWorld> Level)
 	}
 	
 	UGameplayStatics::OpenLevelBySoftObjectPtr(GetWorld(), Level, true, TEXT("listen"));
+	SessionInterface->StartSession(DefaultSessionName);
 }
 
 void USteamSession::Join(const bool bLan) const
