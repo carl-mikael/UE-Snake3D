@@ -58,7 +58,10 @@ void ASnakeGameMode::OnSnakeHit(ASnakePawn* SnakePawn, ESnakeCollision Collision
 	{
 	case ESnakeCollision::ASnakeHead:
 		bIsGameWon = true;
-		OnWinnerDelegate.Broadcast(this->GameState->PlayerArray[0]);
+		{
+			APlayerState* WinningState = this->GameState->PlayerArray[0];
+			OnWinnerDelegate.Broadcast(WinningState, WinningState->GetScore());
+		}
 		break;
 	case ESnakeCollision::ASnakeBodyCell:
 		for (const auto PlayerState : this->GameState->PlayerArray)
@@ -67,7 +70,8 @@ void ASnakeGameMode::OnSnakeHit(ASnakePawn* SnakePawn, ESnakeCollision Collision
 			if (PlayerState->GetPawn() != SnakePawn || NumPlayers == 1)
 			{
 				bIsGameWon = true;
-				OnWinnerDelegate.Broadcast(PlayerState);
+				APlayerState* WinningState = PlayerState; 
+				OnWinnerDelegate.Broadcast(WinningState, WinningState->GetScore());
 			}
 		}
 		break;
@@ -81,11 +85,9 @@ void ASnakeGameMode::OnSnakeHit(ASnakePawn* SnakePawn, ESnakeCollision Collision
 			
 			if (PState->GetScore() >= Points_Needed_To_Win)
 			{
-				OnWinnerDelegate.Broadcast(PState);
-				if (PState->GetScore() >= Points_Needed_To_Win)
-				{
-					bIsGameWon = true;
-				}
+				bIsGameWon = true;
+				APlayerState* WinningState = PState; 
+				OnWinnerDelegate.Broadcast(WinningState, WinningState->GetScore());
 			}
 		}
 		else

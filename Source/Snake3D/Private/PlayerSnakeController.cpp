@@ -99,13 +99,8 @@ void APlayerSnakeController::HandleTurn(const FInputActionValue& Value)
     }
 }
 
-void APlayerSnakeController::OnPlayerStateWin(APlayerState* WinningState)
-{
-    Client_OnPlayerStateWin(WinningState);
-}
-
-void APlayerSnakeController::Client_OnPlayerStateWin_Implementation(APlayerState* WinningState)
+void APlayerSnakeController::Client_OnPlayerStateWin_Implementation(APlayerState* WinningState, const float Score)
 {
     GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("%s won."), WinningState->GetOwningController()==this? TEXT("You") : TEXT("Other player")));
-    OnPlayerWin(WinningState);
+    OnPlayerWin(WinningState, Score);
 }

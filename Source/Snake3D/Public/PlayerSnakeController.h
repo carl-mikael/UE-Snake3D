@@ -35,12 +35,9 @@ protected:
 	UFUNCTION()
 	void HandleTurn(const FInputActionValue& Value);
 	
-	UFUNCTION()
-	void OnPlayerStateWin(APlayerState* WinningState);
-	
 	UFUNCTION(Client, Reliable)
-	void Client_OnPlayerStateWin(APlayerState* WinnerState);
+	void Client_OnPlayerStateWin(APlayerState* WinnerState, float Score);
 	
 	UFUNCTION(BlueprintImplementableEvent)
-	void OnPlayerWin(APlayerState* WinnerState);
+	void OnPlayerWin(APlayerState* WinnerState, float Score);
 };

@@ -6,7 +6,7 @@
 #include "GameFramework/GameMode.h"
 #include "SnakeGameMode.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPlayerStateWinnerDelegate, APlayerState*, WinningState);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPlayerStateWinnerDelegate, APlayerState*, WinningState, float, Score);
 
 UENUM()
 enum class ESnakeCollision
