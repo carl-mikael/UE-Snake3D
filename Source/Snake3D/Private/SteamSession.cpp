@@ -33,7 +33,6 @@ void USteamSession::Initialize(FSubsystemCollectionBase& Collection)
 	}
 	
 	SessionSettings = FOnlineSessionSettings();
-	SessionSettings.bIsLANMatch = true;
 	SessionSettings.bIsDedicated = false;
 	SessionSettings.bAllowJoinViaPresenceFriendsOnly = false;
 	SessionSettings.bAntiCheatProtected = false;
@@ -56,7 +55,7 @@ void USteamSession::Initialize(FSubsystemCollectionBase& Collection)
 	SessionInterface->OnFindSessionsCompleteDelegates.AddUObject(this, &USteamSession::OnFindSessionsComplete);
 }
 
-void USteamSession::Host(const bool bLan, TSoftObjectPtr<UWorld> Level) const
+void USteamSession::Host(const bool bLan, const TSoftObjectPtr<UWorld> Level)
 {
 	const ULocalPlayer* LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
 	if (!IsValid(LocalPlayer))
@@ -85,7 +84,7 @@ void USteamSession::Host(const bool bLan, TSoftObjectPtr<UWorld> Level) const
 		return;
 	}
 	
-	SearchSettings->bIsLanQuery = bLan;
+	SessionSettings.bIsLANMatch = bLan;
 	SessionInterface->CreateSession(*LocalPlayer->GetPreferredUniqueNetId(), DefaultSessionName, SessionSettings);
 	
 	if (GEngine)

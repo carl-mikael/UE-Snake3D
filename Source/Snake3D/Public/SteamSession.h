@@ -25,7 +25,7 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	
 	UFUNCTION(BlueprintCallable)
-	void Host(const bool bLan, TSoftObjectPtr<UWorld> Level) const;
+	void Host(const bool bLan, TSoftObjectPtr<UWorld> Level);
 	
 	UFUNCTION(BlueprintCallable)
 	void Join(const bool bLan) const;
