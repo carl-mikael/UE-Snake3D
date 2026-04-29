@@ -6,6 +6,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputMappingContext.h"
 #include "SnakeGameMode.h"
+#include "SnakeGameState.h"
 #include "GameFramework/PlayerState.h"
 
 void APlayerSnakeController::BeginPlay()
@@ -20,10 +21,18 @@ void APlayerSnakeController::BeginPlay()
             UE_LOG(LogTemp, Error, TEXT("PlayerSnakeController::BeginPlay() - SnakeGameMode invalid"));
             return;
         }
-        
         SnakeGameMode->OnStageWon.AddDynamic(this, &APlayerSnakeController::Client_OnPlayerStageWin);
         SnakeGameMode->OnGameWon.AddDynamic(this, &APlayerSnakeController::Client_OnPlayerGameWin);
-        UE_LOG(LogTemp, Log, TEXT("PlayerSnakeController::BeginPlay() - Subscribed to OnWinDelegates"));
+        
+        ASnakeGameState* SnakeGameState = GetWorld() ? GetWorld()->GetGameState<ASnakeGameState>() : nullptr;
+        if (!IsValid(SnakeGameState))
+        {
+            UE_LOG(LogTemp, Error, TEXT("PlayerSnakeController::BeginPlay() - SnakeGameState invalid"));
+            return;
+        }
+        SnakeGameState->OnGameStageChanged.AddDynamic(this, &APlayerSnakeController::Client_OnGameStageChanged);
+        
+        UE_LOG(LogTemp, Log, TEXT("PlayerSnakeController::BeginPlay() - Subscribed to events"));
     }
 }
 
@@ -39,10 +48,18 @@ void APlayerSnakeController::EndPlay(const EEndPlayReason::Type EndPlayReason)
             UE_LOG(LogTemp, Error, TEXT("PlayerSnakeController::EndPlay() - SnakeGameMode invalid"));
             return;
         }
-        
         SnakeGameMode->OnStageWon.RemoveDynamic(this, &APlayerSnakeController::Client_OnPlayerStageWin);
         SnakeGameMode->OnGameWon.RemoveDynamic(this, &APlayerSnakeController::Client_OnPlayerGameWin);
-        UE_LOG(LogTemp, Log, TEXT("PlayerSnakeController::EndPlay() - Unsubscribed to OnWinDelegates"));
+        
+        ASnakeGameState* SnakeGameState = GetWorld() ? GetWorld()->GetGameState<ASnakeGameState>() : nullptr;
+        if (!IsValid(SnakeGameState))
+        {
+            UE_LOG(LogTemp, Error, TEXT("PlayerSnakeController::BeginPlay() - SnakeGameState invalid"));
+            return;
+        }
+        SnakeGameState->OnGameStageChanged.RemoveDynamic(this, &APlayerSnakeController::Client_OnGameStageChanged);
+        
+        UE_LOG(LogTemp, Log, TEXT("PlayerSnakeController::EndPlay() - Unsubscribed to events"));
     }
 }
 
@@ -65,6 +82,11 @@ void APlayerSnakeController::SetupInputComponent()
     {
         GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Red, TEXT("PlayerSnakeController::SetupInputComponent - EnhancedInputComponent is invalid"));
     }
+}
+
+void APlayerSnakeController::Client_OnGameStageChanged_Implementation(int NewGameStage)
+{
+    OnGameStageChanged(NewGameStage);
 }
 
 void APlayerSnakeController::Client_OnPossess_Implementation(APawn* InPawn)

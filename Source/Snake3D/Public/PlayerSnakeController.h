@@ -31,6 +31,12 @@ protected:
 	virtual void SetupInputComponent() override;
 	
 	UFUNCTION(Client, Reliable)
+	void Client_OnGameStageChanged(int NewGameStage);
+	
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnGameStageChanged(int NewGameStage);
+	
+	UFUNCTION(Client, Reliable)
 	void Client_OnPossess(APawn* InPawn);
 	
 	UFUNCTION()

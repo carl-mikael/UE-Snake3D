@@ -46,7 +46,7 @@ public:
 	void UnRegisterSnakePawn(ASnakePawn* SnakePawn);
 	
 	UFUNCTION(BlueprintCallable)
-	void InitiateNextStage() const;
+	void InitiateNextStage();
 	
 protected:
 	virtual void BeginPlay() override;

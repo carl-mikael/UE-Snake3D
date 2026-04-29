@@ -33,7 +33,7 @@ void ASnakeGameMode::UnRegisterSnakePawn(ASnakePawn* SnakePawn)
 	SnakePawn->OnSnakeHit.RemoveDynamic(this, &ASnakeGameMode::OnSnakeHit);
 }
 
-void ASnakeGameMode::InitiateNextStage() const
+void ASnakeGameMode::InitiateNextStage()
 {
 	int NewStage = GetGameState<ASnakeGameState>()->NextStage();
 	
@@ -41,6 +41,12 @@ void ASnakeGameMode::InitiateNextStage() const
 	for (const auto PlayerState : this->GameState->PlayerArray)
 	{
 		PlayerState->SetScore(0);
+	}
+
+	for (const auto Player : this->GameState->PlayerArray)
+	{
+		Player->GetPawn()->Destroy();
+		RestartPlayer(Player->GetOwningController());
 	}
 }
 
