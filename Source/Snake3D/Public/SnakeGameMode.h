@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "SnakeGameState.h"
 #include "GameFramework/GameMode.h"
 #include "SnakeGameMode.generated.h"
 
@@ -33,12 +34,20 @@ protected:
 	// BO3
 	constexpr static int Stages_Needed_To_Win_Game = 2;
 	
+	constexpr static int Initial_Map_Size = 20;
+	constexpr static int Map_Increase_Per_Stage = 5;
+	
 public:
 	UPROPERTY()
 	FPlayerStageWinnerDelegate OnStageWon;
 	
 	UPROPERTY()
 	FPlayerGameWinnerDelegate OnGameWon;
+	
+	int GetMapSize() const
+	{
+		return Initial_Map_Size + Map_Increase_Per_Stage * GetGameState<ASnakeGameState>()->GetGameStage();
+	}
 	
 	// --- Methods ---
 public:

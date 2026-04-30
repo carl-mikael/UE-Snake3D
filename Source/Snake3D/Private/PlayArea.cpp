@@ -4,13 +4,14 @@
 #include "PlayArea.h"
 
 #include "Food.h"
+#include "SnakeGameMode.h"
 #include "Components/InstancedStaticMeshComponent.h"
+#include "Net/UnrealNetwork.h"
 
 // Sets default values
 APlayArea::APlayArea()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	bReplicates = true;
 	
 	SceneComponent = CreateDefaultSubobject<USceneComponent>("SceneComponent");
 	SetRootComponent(SceneComponent);
@@ -24,11 +25,11 @@ APlayArea::APlayArea()
 	FoodChildActorComponent = CreateDefaultSubobject<UChildActorComponent>("FoodChildActorComponent");
 	FoodChildActorComponent->SetupAttachment(SceneComponent);
 	
-	GridSize = 10;
+	GridSize = 5;
 	TileSize = 100;
 	TileScale = 0.1f;
 	TileZOffset = -50.f;
-	WallScale = 1.5f;
+	WallScale = 2.f;
 }
 
 void APlayArea::OnFoodDestroyed(AActor* Food)
@@ -36,20 +37,54 @@ void APlayArea::OnFoodDestroyed(AActor* Food)
 	SpawnFood();
 }
 
+void APlayArea::RegenMap()
+{
+	GridSize = GetWorld()->GetAuthGameMode<ASnakeGameMode>()->GetMapSize();
+	OnRep_GridSize();
+}
+
 // Called when the game starts or when spawned
 void APlayArea::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	SpawnTiles();
-	SpawnFood();
+	if (HasAuthority())
+	{
+		GetWorld()->GetGameState<ASnakeGameState>()->OnGameStageChanged.AddDynamic(this, &APlayArea::OnGameStageChanged);
+		RegenMap();
+	}
 }
 
-// Called every frame
-void APlayArea::Tick(float DeltaTime)
+void APlayArea::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	Super::Tick(DeltaTime);
+	Super::EndPlay(EndPlayReason);
+	
+	if (HasAuthority())
+	{
+		GetWorld()->GetGameState<ASnakeGameState>()->OnGameStageChanged.RemoveDynamic(this, &APlayArea::OnGameStageChanged);
+	}
+}
 
+void APlayArea::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	
+	DOREPLIFETIME(APlayArea, GridSize);
+}
+
+void APlayArea::OnGameStageChanged(int NewGameStage)
+{
+	RegenMap();
+}
+
+// ReSharper disable once CppMemberFunctionMayBeConst
+void APlayArea::OnRep_GridSize()
+{
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("GridSize replicated: %d"), GridSize));
+	WallMeshInstances->ClearInstances();
+	FloorMeshInstances->ClearInstances();
+	SpawnTiles();
+	SpawnFood();
 }
 
 void APlayArea::SpawnTiles() const

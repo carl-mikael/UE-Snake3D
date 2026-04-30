@@ -16,7 +16,7 @@ protected:
 	UPROPERTY(BlueprintReadWrite, VisibleAnywhere)
 	TObjectPtr<USceneComponent> SceneComponent;
 	
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category="Grid")
+	UPROPERTY(ReplicatedUsing=OnRep_GridSize)
 	int GridSize;
 	
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category="Grid")
@@ -46,16 +46,22 @@ public:
 	APlayArea();
 
 protected:
+	// Called when the game starts or when spawned
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	
+	UFUNCTION()
+	void OnGameStageChanged(int NewGameStage);
+	
+	UFUNCTION()
+	void OnRep_GridSize();
+	
 	UFUNCTION()
 	void OnFoodDestroyed(AActor* Food);
 	
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
+	void RegenMap();
 
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-	
 private:
 	void SpawnTiles() const;
 	FVector GetRandomFloorLocation() const;
