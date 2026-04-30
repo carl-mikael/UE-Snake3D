@@ -52,6 +52,9 @@ protected:
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Body")
 	TArray<TObjectPtr<UChildActorComponent>> ChildActorComponents;
 	
+	UPROPERTY(EditAnywhere, Category = "Components")
+	TObjectPtr<UAudioComponent> AudioComponent;
+	
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Movement")
 	float MovementSpeed;
 

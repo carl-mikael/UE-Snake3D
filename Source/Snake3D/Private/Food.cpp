@@ -2,6 +2,8 @@
 
 
 #include "Food.h"
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
 
 // Sets default values
 AFood::AFood()
@@ -13,4 +15,25 @@ AFood::AFood()
 	StaticMeshComponent->SetStaticMesh(ConstructorHelpers::FObjectFinder<UStaticMesh>(*MeshPath.ToString()).Object);
 	StaticMeshComponent->SetCollisionProfileName(TEXT("BlockAll"));
 	SetRootComponent(StaticMeshComponent);
+}
+
+void AFood::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+	
+	if (IsValid(NiagaraSystemComponent))
+	{
+		UNiagaraComponent* NiagaraSystem = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			GetWorld(),
+			NiagaraSystemComponent,
+			GetActorLocation(),
+			FRotator::ZeroRotator,
+			FVector::OneVector,
+			true,
+			true);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("AFood::EndPlay() - NiagaraSystemComponent is not valid!"));
+	}
 }

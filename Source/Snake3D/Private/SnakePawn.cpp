@@ -8,6 +8,7 @@
 #include "SnakeGameMode.h"
 #include "SnakeMovementComponent.h"
 #include "Camera/CameraComponent.h"
+#include "Components/AudioComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Net/UnrealNetwork.h"
 
@@ -40,6 +41,10 @@ ASnakePawn::ASnakePawn()
 	Camera->AddLocalOffset(CameraLocation);
 	const FRotator CameraRotation = FRotator(-35.0f, 0.0f, 0.0f);
 	Camera->AddLocalRotation(CameraRotation);
+	
+	AudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("AudioComponent"));
+	AudioComponent->bAutoActivate = false;
+	AudioComponent->SetupAttachment(RootComponent);
 	
 	BodyCellActorClass = ASnakeBodyCell::StaticClass();
 		
@@ -116,13 +121,17 @@ void ASnakePawn::Server_DisableTick_Implementation()
 void ASnakePawn::Server_AddBodyCell_Implementation()
 {
 	NrOfBodyCells++;
-	
 	Multicast_AddBodyCell();
 }
 
 void ASnakePawn::Multicast_AddBodyCell_Implementation()
 {
 	AddBodyCell();
+	if (!IsLocallyControlled())
+	{
+		// predicted audio is played before the rpc:s for the client
+		AudioComponent->Play();
+	}
 }
 
 void ASnakePawn::AddBodyCell()
@@ -132,7 +141,6 @@ void ASnakePawn::AddBodyCell()
 	UChildActorComponent* ChildActorComponent = NewObject<UChildActorComponent>(this, *BodyCellName);
 	ChildActorComponent->RegisterComponent();
 	ChildActorComponent->SetChildActorClass(BodyCellActorClass);
-	//ChildActorComponent->AttachToComponent(HeadMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 	ChildActorComponents.Add(ChildActorComponent);
 	const AActor* ChildActor = ChildActorComponent->GetChildActor();
 	if (!IsValid(ChildActor))
@@ -165,6 +173,7 @@ void ASnakePawn::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimit
 		UE_LOG(LogTemp, Log, TEXT("SnakePawn::OnHit - Food!"));
 		Server_OnHit(ESnakeCollision::AFood);
 		this->DestroyActor(FoodActor);
+		AudioComponent->Play();
 		Server_AddBodyCell();
 		return;
 	}
