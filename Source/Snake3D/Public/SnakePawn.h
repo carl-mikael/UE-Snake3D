@@ -43,7 +43,7 @@ protected:
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Replicated, Category = "Body")
 	int NrOfBodyCells;
 	
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Body")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Body")
 	TSubclassOf<AActor> BodyCellActorClass;
 	
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Body")
