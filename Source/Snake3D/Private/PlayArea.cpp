@@ -23,6 +23,7 @@ APlayArea::APlayArea()
 	WallMeshInstances->SetupAttachment(SceneComponent);
 	
 	FoodChildActorComponent = CreateDefaultSubobject<UChildActorComponent>("FoodChildActorComponent");
+	FoodChildActorComponent->SetChildActorClass(AFood::StaticClass());
 	FoodChildActorComponent->SetupAttachment(SceneComponent);
 	
 	GridSize = 5;
@@ -34,6 +35,11 @@ APlayArea::APlayArea()
 
 void APlayArea::OnFoodDestroyed(AActor* Food)
 {
+	if (IsValid(Food))
+	{
+		Food->OnDestroyed.RemoveDynamic(this, &APlayArea::OnFoodDestroyed);
+	}
+	
 	SpawnFood();
 }
 
@@ -41,6 +47,8 @@ void APlayArea::RegenMap()
 {
 	GridSize = GetWorld()->GetAuthGameMode<ASnakeGameMode>()->GetMapSize();
 	OnRep_GridSize();
+	// Destroying it respawns another one, if one has been spawned
+	FoodChildActorComponent->DestroyChildActor();
 }
 
 // Called when the game starts or when spawned
@@ -52,6 +60,7 @@ void APlayArea::BeginPlay()
 	{
 		GetWorld()->GetGameState<ASnakeGameState>()->OnGameStageChanged.AddDynamic(this, &APlayArea::OnGameStageChanged);
 		RegenMap();
+		SpawnFood();
 	}
 }
 
@@ -62,6 +71,11 @@ void APlayArea::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	if (HasAuthority())
 	{
 		GetWorld()->GetGameState<ASnakeGameState>()->OnGameStageChanged.RemoveDynamic(this, &APlayArea::OnGameStageChanged);
+		AFood* FoodActor = Cast<AFood>(FoodChildActorComponent->GetChildActor());
+		if (IsValid(FoodActor))
+		{
+			FoodActor->OnDestroyed.RemoveDynamic(this, &APlayArea::OnFoodDestroyed);
+		}
 	}
 }
 
@@ -84,7 +98,6 @@ void APlayArea::OnRep_GridSize()
 	WallMeshInstances->ClearInstances();
 	FloorMeshInstances->ClearInstances();
 	SpawnTiles();
-	SpawnFood();
 }
 
 void APlayArea::SpawnTiles() const
