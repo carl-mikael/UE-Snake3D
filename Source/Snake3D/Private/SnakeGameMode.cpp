@@ -3,6 +3,7 @@
 
 #include "SnakeGameMode.h"
 
+#include "PlayerSnakeController.h"
 #include "SnakeGameState.h"
 #include "SnakePawn.h"
 #include "SnakePlayerState.h"

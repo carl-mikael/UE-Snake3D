@@ -14,15 +14,15 @@ ASnakeBodyCell::ASnakeBodyCell()
 	
 	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>("MeshComponent");
 	SetRootComponent(MeshComponent);
-	UStaticMesh* Mesh = LoadObject<UStaticMesh>(this, TEXT("/Engine/BasicShapes/Sphere.Sphere"));
-	if (IsValid(Mesh))
-	{
-		MeshComponent->SetStaticMesh(Mesh);
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("SnakeBodyCell::ASnakeBodyCell() Couldn't find mesh"));
-	}
+	// UStaticMesh* Mesh = LoadObject<UStaticMesh>(this, TEXT("/Engine/BasicShapes/Sphere.Sphere"));
+	// if (IsValid(Mesh))
+	// {
+	// 	MeshComponent->SetStaticMesh(Mesh);
+	// }
+	// else
+	// {
+	// 	UE_LOG(LogTemp, Error, TEXT("SnakeBodyCell::ASnakeBodyCell() Couldn't find mesh"));
+	// }
 }
 
 // Called when the game starts or when spawned
