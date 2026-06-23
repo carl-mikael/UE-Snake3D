@@ -6,6 +6,8 @@
 #include "GameFramework/Actor.h"
 #include "PlayArea.generated.h"
 
+class APlayerStart;
+
 UCLASS()
 class SNAKE3D_API APlayArea : public AActor
 {
@@ -40,18 +42,21 @@ protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Food")
 	TObjectPtr<UChildActorComponent> FoodChildActorComponent;
 	
+	UPROPERTY()
+	TObjectPtr<APlayerStart> ClientStart;
+	
 	// --- Methods ---
 public:	
 	// Sets default values for this actor's properties
 	APlayArea();
 
 protected:
-	// Called when the game starts or when spawned
+	virtual void PostInitializeComponents() override;
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	
-	void SetPlayerSpawns() const;
+	void SetPlayerSpawns();
 	
 	UFUNCTION()
 	void OnGameStageChanged(int NewGameStage);

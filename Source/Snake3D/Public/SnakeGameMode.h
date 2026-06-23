@@ -40,9 +40,11 @@ protected:
 	constexpr static int Stages_Needed_To_Win_Game = 2;
 	
 	constexpr static int Initial_Map_Size = 30;
+	// constexpr static int Initial_Map_Size = 5;
 	constexpr static int Map_Increase_Per_Stage = -5;
+	// constexpr static int Map_Increase_Per_Stage = -0;
 	
-	constexpr static float Movement_Speed_Multiplier_Per_Stage = 1.75f;
+	constexpr static float Movement_Speed_Multiplier_Per_Stage = 1.25f;
 	
 public:
 	UPROPERTY()

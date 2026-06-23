@@ -53,6 +53,7 @@ void ASnakeGameMode::InitiateNextStage()
 		if (SnakePawn == nullptr)
 		{
 			UE_LOG(LogTemp, Error, TEXT("ASnakeGameMode::InitiateNextStage() - SnakePawn is nullptr"));
+			return;
 		}
 
 		SnakePawn->Multicast_SetMovementSpeed(SnakePawn->GetMovementSpeed() * Movement_Speed_Multiplier_Per_Stage);

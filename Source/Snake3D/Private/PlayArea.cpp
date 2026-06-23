@@ -5,6 +5,7 @@
 
 #include "Food.h"
 #include "SnakeGameMode.h"
+#include "Components/CapsuleComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "GameFramework/PlayerStart.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -35,6 +36,17 @@ APlayArea::APlayArea()
 	WallScale = 2.f;
 }
 
+void APlayArea::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+	
+	if (HasAuthority() && GetWorld() && GetWorld()->GetAuthGameMode<ASnakeGameMode>())
+	{
+		GridSize = GetWorld()->GetAuthGameMode<ASnakeGameMode>()->GetMapSize();
+		SetPlayerSpawns();
+	}
+}
+
 void APlayArea::OnFoodDestroyed(AActor* Food)
 {
 	if (IsValid(Food))
@@ -49,6 +61,10 @@ void APlayArea::RegenMap()
 {
 	GridSize = GetWorld()->GetAuthGameMode<ASnakeGameMode>()->GetMapSize();
 	OnRep_GridSize();
+	
+	const FVector ClientOffset = FVector(static_cast<float>(TileSize) * 2.0f, (GridSize - 1) * TileSize - 2.0f * static_cast<float>(TileSize), 0.0f);
+	ClientStart->SetActorLocation(this->GetActorLocation() + ClientOffset);
+	
 	// Destroying it respawns another one, if one has been spawned
 	FoodChildActorComponent->DestroyChildActor();
 }
@@ -89,15 +105,21 @@ void APlayArea::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutL
 	DOREPLIFETIME(APlayArea, GridSize);
 }
 
-void APlayArea::SetPlayerSpawns() const
+void APlayArea::SetPlayerSpawns()
 {
-	APlayerStart* HostStart = Cast<APlayerStart>(GetWorld()->SpawnActor(APlayerStart::StaticClass()));
 	const ASnakeGameMode* Gm = Cast<ASnakeGameMode>(GetWorld()->GetAuthGameMode());
-	HostStart->PlayerStartTag = Gm->HostSpawnName;
 	
-	APlayerStart* ClientStart = Cast<APlayerStart>(GetWorld()->SpawnActor(APlayerStart::StaticClass()));
+	APlayerStart* HostStart = Cast<APlayerStart>(GetWorld()->SpawnActor(APlayerStart::StaticClass()));
+	HostStart->GetCapsuleComponent()->SetMobility(EComponentMobility::Movable);
+	HostStart->PlayerStartTag = Gm->HostSpawnName;
+	const FVector HostOffset = FVector(static_cast<float>(TileSize) * 2.0f, static_cast<float>(TileSize) * 2.0f, 0.0f);
+	HostStart->SetActorLocation(this->GetActorLocation() + HostOffset);
+	
+	ClientStart = Cast<APlayerStart>(GetWorld()->SpawnActor(APlayerStart::StaticClass()));
+	ClientStart->GetCapsuleComponent()->SetMobility(EComponentMobility::Movable);
 	ClientStart->PlayerStartTag = Gm->ClientSpawnName;
-	ClientStart->SetActorLocation(HostStart->GetActorLocation() + FVector(GridSize * TileSize, GridSize * TileSize, 0.f));
+	const FVector ClientOffset = FVector(static_cast<float>(TileSize) * 2.0f, (GridSize - 1) * TileSize - 2.0f * static_cast<float>(TileSize), 0.0f);
+	ClientStart->SetActorLocation(this->GetActorLocation() + ClientOffset);
 }
 
 void APlayArea::OnGameStageChanged(int NewGameStage)
@@ -156,23 +178,37 @@ FVector APlayArea::GetRandomFreeFloorLocation() const
 	FTransform RandomFloorTransform;
 	int constexpr MaxAttempts = 500;
 	int CurrentAttempt = 0;
-	while (CurrentAttempt < MaxAttempts &&
-		!FloorMeshInstances->GetInstanceTransform(
+	
+	while (CurrentAttempt < MaxAttempts)
+	{
+		const bool bValidTile = FloorMeshInstances->GetInstanceTransform(
 		FMath::RandRange(0, FloorMeshInstances->GetInstanceCount() - 1),
-		RandomFloorTransform, true) &&
-		!UKismetSystemLibrary::BoxTraceSingleByProfile(
+		RandomFloorTransform, true);
+		
+		const FVector HalfSize = FVector::OneVector * (static_cast<float>(TileSize)/2.0f);
+		const bool bUnoccupiedTile = !UKismetSystemLibrary::BoxTraceSingleByProfile(
 			GetWorld(),
-			RandomFloorTransform.GetLocation(),
+			RandomFloorTransform.GetLocation() + FVector::UpVector * (HalfSize + 1.0f),
 			RandomFloorTransform.GetLocation() + FVector::UpVector * UpDistance,
-			FVector::OneVector * (static_cast<float>(TileSize)/2.0f),
+			HalfSize,
 			FRotator::ZeroRotator,
 			FName("BlockAll"),
 			false,
 			TArray<AActor*>(),
-			EDrawDebugTrace::ForDuration,
+			EDrawDebugTrace::None,
 			HitResult,
-			true))
-	{
+			true);
+		
+		if (!bUnoccupiedTile)
+		{
+			UE_LOG(LogTemp, Log, TEXT("HIT: %s"), *HitResult.GetActor()->GetName());
+		}
+		
+		if (bValidTile && bUnoccupiedTile)
+		{
+			break;
+		}
+		
 		CurrentAttempt++;
 	}
 	
@@ -191,7 +227,8 @@ void APlayArea::SpawnFood() const
 	}
 	
 	RandomFloorLocation.Z += TileZOffset * -1;
-	ChildActor->SetActorTransform(FTransform(RandomFloorLocation));
+	// ChildActor->SetActorTransform(FTransform(RandomFloorLocation));
+	FoodChildActorComponent->SetWorldLocation(RandomFloorLocation);
 	AFood* FoodActor = Cast<AFood>(ChildActor);
 	if (FoodActor)
 	{
