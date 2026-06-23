@@ -7,6 +7,7 @@
 #include "GameFramework/GameMode.h"
 #include "SnakeGameMode.generated.h"
 
+class APlayArea;
 class ASnakePlayerState;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPlayerStageWinnerDelegate, APlayerState*, WinningState, float, Score);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPlayerGameWinnerDelegate, APlayerState*, WinningState);
@@ -16,7 +17,8 @@ enum class ESnakeCollision
 {
 	ASnakeHead,
 	ASnakeBodyCell,
-	AFood
+	AFood,
+	AMap
 };
 
 class ASnakePawn;
@@ -30,14 +32,24 @@ class SNAKE3D_API ASnakeGameMode : public AGameMode
 	
 	// --- Properties ---
 protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "MapGen")
+	TSubclassOf<APlayArea> MapGen;
+	
 	constexpr static int Points_Needed_To_Win_Stage = 10;
 	// BO3
 	constexpr static int Stages_Needed_To_Win_Game = 2;
 	
-	constexpr static int Initial_Map_Size = 20;
-	constexpr static int Map_Increase_Per_Stage = 5;
+	constexpr static int Initial_Map_Size = 30;
+	constexpr static int Map_Increase_Per_Stage = -5;
+	
+	constexpr static float Movement_Speed_Multiplier_Per_Stage = 1.75f;
 	
 public:
+	UPROPERTY()
+	FName HostSpawnName = FName("P1");
+	UPROPERTY()
+	FName ClientSpawnName = FName("P2");
+	
 	UPROPERTY()
 	FPlayerStageWinnerDelegate OnStageWon;
 	
@@ -58,6 +70,7 @@ public:
 	void InitiateNextStage();
 	
 protected:
+	virtual void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) override;
 	virtual void BeginPlay() override;
 	virtual AActor* ChoosePlayerStart_Implementation(AController* Player) override;
 	

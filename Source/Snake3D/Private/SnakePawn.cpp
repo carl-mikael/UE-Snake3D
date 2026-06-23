@@ -4,6 +4,7 @@
 #include "SnakePawn.h"
 
 #include "Food.h"
+#include "PlayArea.h"
 #include "SnakeBodyCell.h"
 #include "SnakeGameMode.h"
 #include "SnakeMovementComponent.h"
@@ -208,6 +209,13 @@ void ASnakePawn::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimit
 			Server_DisableTick();
 		}
 		return;
+	}
+	
+	// WallCollision
+	const AActor* Map = Cast<APlayArea>(OtherActor);
+	if (IsValid(Map))
+	{
+		Server_OnHit(ESnakeCollision::AMap);
 	}
 }
 

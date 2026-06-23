@@ -51,6 +51,8 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	
+	void SetPlayerSpawns() const;
+	
 	UFUNCTION()
 	void OnGameStageChanged(int NewGameStage);
 	
@@ -64,6 +66,6 @@ protected:
 
 private:
 	void SpawnTiles() const;
-	FVector GetRandomFloorLocation() const;
+	FVector GetRandomFreeFloorLocation() const;
 	void SpawnFood() const;
 };

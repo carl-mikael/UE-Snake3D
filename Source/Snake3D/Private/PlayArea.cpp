@@ -6,6 +6,8 @@
 #include "Food.h"
 #include "SnakeGameMode.h"
 #include "Components/InstancedStaticMeshComponent.h"
+#include "GameFramework/PlayerStart.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Net/UnrealNetwork.h"
 
 // Sets default values
@@ -58,9 +60,10 @@ void APlayArea::BeginPlay()
 	
 	if (HasAuthority())
 	{
-		GetWorld()->GetGameState<ASnakeGameState>()->OnGameStageChanged.AddDynamic(this, &APlayArea::OnGameStageChanged);
 		RegenMap();
+		// SetPlayerSpawns();
 		SpawnFood();
+		GetWorld()->GetGameState<ASnakeGameState>()->OnGameStageChanged.AddDynamic(this, &APlayArea::OnGameStageChanged);
 	}
 }
 
@@ -84,6 +87,17 @@ void APlayArea::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutL
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	
 	DOREPLIFETIME(APlayArea, GridSize);
+}
+
+void APlayArea::SetPlayerSpawns() const
+{
+	APlayerStart* HostStart = Cast<APlayerStart>(GetWorld()->SpawnActor(APlayerStart::StaticClass()));
+	const ASnakeGameMode* Gm = Cast<ASnakeGameMode>(GetWorld()->GetAuthGameMode());
+	HostStart->PlayerStartTag = Gm->HostSpawnName;
+	
+	APlayerStart* ClientStart = Cast<APlayerStart>(GetWorld()->SpawnActor(APlayerStart::StaticClass()));
+	ClientStart->PlayerStartTag = Gm->ClientSpawnName;
+	ClientStart->SetActorLocation(HostStart->GetActorLocation() + FVector(GridSize * TileSize, GridSize * TileSize, 0.f));
 }
 
 void APlayArea::OnGameStageChanged(int NewGameStage)
@@ -135,13 +149,31 @@ void APlayArea::SpawnTiles() const
 	}
 }
 
-FVector APlayArea::GetRandomFloorLocation() const
+FVector APlayArea::GetRandomFreeFloorLocation() const
 {
+	float constexpr UpDistance = 50.0f;
+	FHitResult HitResult;
 	FTransform RandomFloorTransform;
-	while (!FloorMeshInstances->GetInstanceTransform(
+	int constexpr MaxAttempts = 500;
+	int CurrentAttempt = 0;
+	while (CurrentAttempt < MaxAttempts &&
+		!FloorMeshInstances->GetInstanceTransform(
 		FMath::RandRange(0, FloorMeshInstances->GetInstanceCount() - 1),
-		RandomFloorTransform, true))
+		RandomFloorTransform, true) &&
+		!UKismetSystemLibrary::BoxTraceSingleByProfile(
+			GetWorld(),
+			RandomFloorTransform.GetLocation(),
+			RandomFloorTransform.GetLocation() + FVector::UpVector * UpDistance,
+			FVector::OneVector * (static_cast<float>(TileSize)/2.0f),
+			FRotator::ZeroRotator,
+			FName("BlockAll"),
+			false,
+			TArray<AActor*>(),
+			EDrawDebugTrace::ForDuration,
+			HitResult,
+			true))
 	{
+		CurrentAttempt++;
 	}
 	
 	return RandomFloorTransform.GetLocation();
@@ -149,10 +181,10 @@ FVector APlayArea::GetRandomFloorLocation() const
 
 void APlayArea::SpawnFood() const
 {
-	FVector RandomFloorLocation = GetRandomFloorLocation();
+	FVector RandomFloorLocation = GetRandomFreeFloorLocation();
+	
 	FoodChildActorComponent->CreateChildActor();
 	AActor* ChildActor = FoodChildActorComponent->GetChildActor();
-	// Without this it crashes on player death, idk why
 	if (!IsValid(ChildActor))
 	{
 		return;

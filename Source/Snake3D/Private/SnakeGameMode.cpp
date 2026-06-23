@@ -3,6 +3,7 @@
 
 #include "SnakeGameMode.h"
 
+#include "PlayArea.h"
 #include "PlayerSnakeController.h"
 #include "SnakeGameState.h"
 #include "SnakePawn.h"
@@ -37,7 +38,6 @@ void ASnakeGameMode::UnRegisterSnakePawn(ASnakePawn* SnakePawn)
 void ASnakeGameMode::InitiateNextStage()
 {
 	int NewStage = GetGameState<ASnakeGameState>()->NextStage();
-	constexpr float Movement_Speed_Multiplier_Per_Stage = 1.25f;
 	
 	// Reset Scores
 	for (const auto PlayerState : this->GameState->PlayerArray)
@@ -59,6 +59,12 @@ void ASnakeGameMode::InitiateNextStage()
 	}
 }
 
+void ASnakeGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
+{
+	Super::InitGame(MapName, Options, ErrorMessage);
+	
+}
+
 void ASnakeGameMode::BeginPlay()
 {
 	Super::BeginPlay();
@@ -72,9 +78,9 @@ AActor* ASnakeGameMode::ChoosePlayerStart_Implementation(AController* Player)
 	TArray<AActor*> PlayerStarts;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerStart::StaticClass(), PlayerStarts);
 	
-	AActor** PlayerStart = PlayerStarts.FindByPredicate([&bIsHost](AActor* Start)
+	AActor** PlayerStart = PlayerStarts.FindByPredicate([&bIsHost, this](AActor* Start)
 	{
-		return Cast<APlayerStart>(Start)->PlayerStartTag == (bIsHost? TEXT("P1") : TEXT("P2"));
+		return Cast<APlayerStart>(Start)->PlayerStartTag == (bIsHost? HostSpawnName : ClientSpawnName);
 	});
 	
 	return *PlayerStart;
@@ -113,22 +119,34 @@ void ASnakeGameMode::OnSnakeHit(ASnakePawn* SnakePawn, ESnakeCollision Collision
 		}
 		break;
 	case ESnakeCollision::AFood:
-		ASnakePlayerState* PState = Cast<ASnakePlayerState>(SnakePawn->GetPlayerState());
-		if (IsValid(PState))
 		{
-			PState->SetScore(PState->GetScore() + 1);
-			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("SnakePawn::Server_AddBodyCell_Implementation() - Score updated!"));
-			UE_LOG(LogTemp, Log, TEXT("SnakePawn::Server_AddBodyCell_Implementation() - New Score: %f"), PState->GetScore());
-			
-			if (PState->GetScore() >= Points_Needed_To_Win_Stage)
+			ASnakePlayerState* PState = Cast<ASnakePlayerState>(SnakePawn->GetPlayerState());
+			if (IsValid(PState))
 			{
-				WinStage(PState);
+				PState->SetScore(PState->GetScore() + 1);
+				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("SnakePawn::Server_AddBodyCell_Implementation() - Score updated!"));
+				UE_LOG(LogTemp, Log, TEXT("SnakePawn::Server_AddBodyCell_Implementation() - New Score: %f"), PState->GetScore());
+			
+				if (PState->GetScore() >= Points_Needed_To_Win_Stage)
+				{
+					WinStage(PState);
+				}
+			}
+			else
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("SnakePawn::Server_AddBodyCell_Implementation() - PlayerSnakeState is invalid"));
+				UE_LOG(LogTemp, Error, TEXT("SnakePawn::Server_AddBodyCell_Implementation() - PlayerSnakeState is invalid"));
 			}
 		}
-		else
+		break;
+	case ESnakeCollision::AMap:
+		for (const auto PlayerState : this->GameState->PlayerArray)
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("SnakePawn::Server_AddBodyCell_Implementation() - PlayerSnakeState is invalid"));
-			UE_LOG(LogTemp, Error, TEXT("SnakePawn::Server_AddBodyCell_Implementation() - PlayerSnakeState is invalid"));
+			// The player state that doesn't own the pawn that collided wins.
+			if (PlayerState->GetPawn() != SnakePawn || NumPlayers == 1)
+			{
+				WinStage(Cast<ASnakePlayerState>(PlayerState));
+			}
 		}
 		break;
 	}
